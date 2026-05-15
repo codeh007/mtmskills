@@ -39,14 +39,14 @@ npx skills add codeh007/mtmskills --skill gomtm-demo1 -a hermes-agent
 全局安装到 Codex：
 
 ```bash
-npx skills add codeh007/mtmskills --skill gomtm-demo1 -a codex -g
+npx skills add codeh007/mtmskills --skill gomtm-demo2 -a codex -g -y
 ```
 
 开发本仓库时，可以从本地 checkout 安装：
 
 ```bash
 npx skills add /workspace/mtmskills --list
-npx skills add /workspace/mtmskills --skill gomtm-demo2 -a codex
+npx skills add /workspace/mtmskills --skill gomtm-demo2 -a codex -g -y
 ```
 
 也可以手动复制或软链接到目标 Agent 的技能目录：
@@ -61,25 +61,26 @@ cp -R mtmskills/skills/gomtm-demo2 ~/.codex/skills/
 
 ## 更新技能
 
-技能仓库会频繁更新。已经安装过技能后，建议直接重新运行相同的 `npx skills add ... --skill ...` 命令覆盖安装目标技能。
+技能仓库会频繁更新。已经安装过技能后，推荐直接重新运行相同的 `npx skills add ... --skill ...` 命令覆盖安装目标技能。这条路径已经用 `gomtm-demo2` 验证过：推送主分支后，重新执行 `skills add` 能把本机旧版技能更新到新内容。
 
-从 GitHub 更新某个技能：
+从 GitHub 覆盖更新某个技能：
 
 ```bash
-npx skills add codeh007/mtmskills --skill gomtm-demo2 -a codex
+npx skills add codeh007/mtmskills --skill gomtm-demo2 -a codex -g -y
 ```
 
-从本地 checkout 更新某个技能：
+从本地 checkout 覆盖更新某个技能：
 
 ```bash
 git -C /workspace/mtmskills pull --ff-only
-npx skills add /workspace/mtmskills --skill gomtm-demo2 -a codex
+npx skills add /workspace/mtmskills --skill gomtm-demo2 -a codex -g -y
 ```
 
-更新后确认目标 Agent 能发现技能：
+更新后确认目标 Agent 能发现技能，并检查目标技能文件内容：
 
 ```bash
 npx skills add /workspace/mtmskills --list
+sed -n '1,80p' ~/.agents/skills/gomtm-demo2/SKILL.md
 ```
 
 维护者在新增或修改技能后，应按这个顺序确认发布链路：
@@ -89,8 +90,11 @@ scripts/validate-skills
 git status --short
 git push origin main
 npx skills add codeh007/mtmskills --list
-npx skills add codeh007/mtmskills --skill gomtm-demo2 -a codex
+npx skills add codeh007/mtmskills --skill gomtm-demo2 -a codex -g -y
+sed -n '1,80p' ~/.agents/skills/gomtm-demo2/SKILL.md
 ```
+
+`npx skills update gomtm-demo2 -g -y` 可以作为补充检查，但不要只依赖它的输出；实际验收以重新 `skills add` 后目标技能文件内容为准。
 
 如果 npm 默认缓存目录不可写，可以临时指定缓存目录：
 
