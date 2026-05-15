@@ -3,7 +3,7 @@ name: gomtm-demo2
 description: Use when verifying that mtmskills is installed correctly, testing agent skill discovery, or demonstrating the minimum shape of a portable agent skill without touching live gomtm systems.
 ---
 
-# Gomtm Demo 1
+# Gomtm Demo 2
 
 ## Overview
 
