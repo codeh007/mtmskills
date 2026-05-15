@@ -1,0 +1,73 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+found=0
+while IFS= read -r -d '' skill_md; do
+  found=1
+  skill_dir="$(dirname "$skill_md")"
+  skill_name="$(basename "$skill_dir")"
+
+  python3 - "$skill_md" "$skill_name" <<'PY'
+import pathlib
+import re
+import sys
+
+skill_md = pathlib.Path(sys.argv[1])
+folder_name = sys.argv[2]
+content = skill_md.read_text()
+
+if not content.startswith("---\n"):
+    raise SystemExit(f"{skill_md}: missing YAML frontmatter")
+
+match = re.match(r"^---\n(.*?)\n---(?:\n|$)", content, re.DOTALL)
+if not match:
+    raise SystemExit(f"{skill_md}: invalid YAML frontmatter block")
+
+frontmatter = {}
+for lineno, raw_line in enumerate(match.group(1).splitlines(), start=2):
+    line = raw_line.strip()
+    if not line:
+        continue
+    simple = re.match(r"^([a-zA-Z][a-zA-Z0-9_-]*):\s*(.*)$", line)
+    if not simple:
+        raise SystemExit(f"{skill_md}:{lineno}: frontmatter must use simple key: value lines")
+    key, value = simple.groups()
+    if key not in {"name", "description"}:
+        raise SystemExit(f"{skill_md}:{lineno}: unexpected frontmatter key '{key}'")
+    value = value.strip()
+    if (value.startswith('"') and value.endswith('"')) or (value.startswith("'") and value.endswith("'")):
+        value = value[1:-1]
+    frontmatter[key] = value
+
+name = frontmatter.get("name", "").strip()
+description = frontmatter.get("description", "").strip()
+
+if not name:
+    raise SystemExit(f"{skill_md}: missing required frontmatter key 'name'")
+if not description:
+    raise SystemExit(f"{skill_md}: missing required frontmatter key 'description'")
+if name != folder_name:
+    raise SystemExit(f"{skill_md}: frontmatter name '{name}' does not match folder '{folder_name}'")
+if not re.match(r"^[a-z0-9-]+$", name):
+    raise SystemExit(f"{skill_md}: name must use lowercase letters, digits, and hyphens only")
+if name.startswith("-") or name.endswith("-") or "--" in name:
+    raise SystemExit(f"{skill_md}: name cannot start/end with hyphen or contain consecutive hyphens")
+if len(name) > 64:
+    raise SystemExit(f"{skill_md}: name exceeds 64 characters")
+if len(description) > 1024:
+    raise SystemExit(f"{skill_md}: description exceeds 1024 characters")
+if "<" in description or ">" in description:
+    raise SystemExit(f"{skill_md}: description cannot contain angle brackets")
+
+print(f"{name}: valid")
+PY
+done < <(find "$repo_root/skills" -mindepth 2 -maxdepth 2 -name SKILL.md -print0 | sort -z)
+
+if [[ "$found" -eq 0 ]]; then
+  echo "No skills found under $repo_root/skills" >&2
+  exit 1
+fi
+
+echo "All skills are valid."

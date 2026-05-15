@@ -1,0 +1,6 @@
+interface:
+  display_name: "Gomtm Demo 1"
+  short_description: "Minimal mtmskills demo skill"
+  default_prompt: "Use $gomtm-demo1 to answer with the demo skill checklist."
+policy:
+  allow_implicit_invocation: true
