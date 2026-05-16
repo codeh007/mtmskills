@@ -1,40 +1,18 @@
 # mtmskills
 
-面向 Agent 的可安装 Skills 集合。
-
 ## 安装
 
-列出可安装技能：
+
 
 ```bash
-npx skills add codeh007/mtmskills --list
+# 全局安装
+npx skills add https://github.com/codeh007/mtmskills --all --global --yes
 ```
 
 安装指定技能到 Codex：
 
 ```bash
-npx skills add codeh007/mtmskills --skill demo-smoke-test -a codex
-```
-
-全局安装：
-
-```bash
-npx skills add codeh007/mtmskills --skill demo-smoke-test -a codex -g -y
-```
-
-从本地仓库安装：
-
-```bash
-npx skills add /workspace/mtmskills --list
-npx skills add /workspace/mtmskills --skill demo-smoke-test -a codex -g -y
-```
-
-## 更新
-
-重新执行安装命令即可覆盖已安装技能：
-
-```bash
-npx skills add codeh007/mtmskills --skill demo-smoke-test -a codex -g -y
+npx skills add https://github.com/codeh007/mtmskills --skill demo-smoke-test -a codex
 ```
 
 ## 目录结构
@@ -61,7 +39,6 @@ skills/
 ```bash
 scripts/validate-skills
 ```
-
 
 # 收集的 技能仓库
 
