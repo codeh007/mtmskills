@@ -1,0 +1,155 @@
+---
+name: telegram_dm
+description: Telegram 私信营销推广技能。当用户请求进行 Telegram 私信/DM 营销推广、批量发送消息、登录 Telegram 用户账号、管理受众列表等操作时使用此技能。触发关键词：私信、DM、营销、推广、批量发送、telegram 登录、受众列表、发送消息、群发。
+user-invocable: true
+---
+
+# Telegram 私信营销推广
+
+通过 gomtm server 的 MTProto API 端点，使用用户提供的 Telegram 账号向目标受众批量发送私信。
+
+## 核心能力
+
+1. **账号登录** — 引导用户提供手机号，通过 API 发送验证码并完成登录
+2. **批量私信** — 向用户提供的目标列表批量发送自定义消息
+3. **会话管理** — 维护 session_data 实现跨请求的登录态持久化
+4. **结果追踪** — 记录发送成功/失败详情并向用户汇报
+
+## 交互流程
+
+与用户的完整对话流程如下。**始终使用中文回复**。
+
+### 阶段 1：了解需求
+
+当用户首次询问时，简要介绍能力：
+- 支持 Telegram 账号登录（手机号+验证码）
+- 批量向目标用户发送私信
+- 需要用户提供：账号手机号、目标列表、消息文案
+
+### 阶段 2：账号登录
+
+1. 用户提供手机号（国际格式，如 `+8613800138000`）
+2. 调用 send-code API 发送验证码
+3. 提示用户查看已登录设备的验证码
+4. 用户提供验证码后调用 sign-in API 完成登录
+5. 如需两步验证密码，引导用户提供密码
+6. 登录成功后保存 `session_data`
+
+### 阶段 3：准备发送
+
+1. 收集目标列表 — 用户提供 username 列表、手机号列表或混合格式
+2. 收集消息文案 — 用户提供消息模板，可协助润色
+3. 确认发送策略 — 一次性全量 or 分批发送，每批间隔时间
+
+### 阶段 4：执行发送
+
+编写并执行 Python/bash 脚本批量调用 send-message API。详见 [脚本参考](references/batch-send-script.md)。
+
+### 阶段 5：结果汇报
+
+汇总发送结果：成功数、失败数、失败原因，并建议后续行动。
+
+## API 端点参考
+
+gomtm server 在 `http://localhost:8383` 上提供以下端点：
+
+### 发送验证码
+
+```bash
+curl -X POST http://localhost:8383/v1/telegram/auth/send-code \
+  -H 'Content-Type: application/json' \
+  -d '{"phone": "+8613800138000"}'
+```
+
+响应：`{"success": true, "session_data": "<base64>", "result": {"phone_code_hash": "...", "code_type": "app"}}`
+
+### 登录
+
+```bash
+curl -X POST http://localhost:8383/v1/telegram/auth/sign-in \
+  -H 'Content-Type: application/json' \
+  -d '{"phone": "+8613800138000", "code": "12345", "phone_code_hash": "...", "session_data": "<base64>"}'
+```
+
+若返回 `result.type == "need_password"`，需调用密码端点：
+
+```bash
+curl -X POST http://localhost:8383/v1/telegram/auth/password \
+  -H 'Content-Type: application/json' \
+  -d '{"password": "xxx", "session_data": "<base64>"}'
+```
+
+### 获取用户信息（验证登录态）
+
+```bash
+curl -X POST http://localhost:8383/v1/telegram/auth/user-info \
+  -H 'Content-Type: application/json' \
+  -d '{"session_data": "<base64>"}'
+```
+
+### 添加联系人（用手机号获取 user_id）
+
+```bash
+curl -X POST http://localhost:8383/v1/telegram/contact/add \
+  -H 'Content-Type: application/json' \
+  -d '{"phone": "+1234567890", "first_name": "Target", "session_data": "<base64>"}'
+```
+
+响应：`{"success": true, "user_id": 123456, "access_hash": 789, "session_data": "<base64>"}`
+
+### 发送私信
+
+```bash
+curl -X POST http://localhost:8383/v1/telegram/message/send \
+  -H 'Content-Type: application/json' \
+  -d '{"username": "target_user", "message": "你好！", "session_data": "<base64>"}'
+```
+
+也可用 `user_id` + `access_hash` 替代 `username`。
+
+## 关键规则
+
+1. **session_data 链式传递** — 每次 API 调用后，使用响应中最新的 `session_data` 发起下一次请求
+2. **频率控制** — 每条消息间隔 3-10 秒（随机），避免触发 Telegram 风控
+3. **分批发送** — 每批建议不超过 30 条，批次间隔 5-15 分钟
+4. **错误处理** — FLOOD_WAIT 错误需按提示等待；账号被限制时立即停止并通知用户
+5. **安全** — 不在聊天中暴露 session_data 的原始值，仅在脚本中使用
+
+## 脚本模板
+
+批量发送时，编写并执行脚本。完整模板和用法见 [批量发送脚本参考](references/batch-send-script.md)。
+
+快速示例（bash）：
+
+```bash
+SESSION="<session_data>"
+TARGETS=("user1" "user2" "user3")
+MSG="你好，这是一条推广消息"
+
+for target in "${TARGETS[@]}"; do
+  result=$(curl -s -X POST http://localhost:8383/v1/telegram/message/send \
+    -H 'Content-Type: application/json' \
+    -d "{\"username\": \"$target\", \"message\": \"$MSG\", \"session_data\": \"$SESSION\"}")
+  
+  # 更新 session_data
+  new_session=$(echo "$result" | python3 -c "import sys,json; print(json.load(sys.stdin).get('session_data',''))" 2>/dev/null)
+  [ -n "$new_session" ] && SESSION="$new_session"
+  
+  success=$(echo "$result" | python3 -c "import sys,json; print(json.load(sys.stdin).get('success',False))" 2>/dev/null)
+  echo "[$target] success=$success"
+  
+  # 随机延迟 3-10 秒
+  sleep $((RANDOM % 8 + 3))
+done
+```
+
+## 故障排查
+
+| 错误 | 原因 | 处理 |
+|------|------|------|
+| `PHONE_NUMBER_INVALID` | 手机号格式错误 | 确认国际格式（含国家码） |
+| `PHONE_CODE_EXPIRED` | 验证码超时 | 重新调用 send-code |
+| `SESSION_PASSWORD_NEEDED` | 开启了两步验证 | 调用 password 端点 |
+| `FLOOD_WAIT_X` | 操作过快被限流 | 等待 X 秒后重试 |
+| `PEER_FLOOD` | 发送私信被限制 | 停止发送，通知用户，建议等待 24h |
+| `USER_PRIVACY_RESTRICTED` | 目标用户隐私设置 | 跳过此用户，继续下一个 |

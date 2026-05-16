@@ -1,0 +1,4 @@
+Hi there,
+
+This is a demo Telegram DM message.
+Please review the text before sending it to real users.

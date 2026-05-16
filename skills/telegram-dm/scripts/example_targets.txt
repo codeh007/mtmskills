@@ -1,0 +1,4 @@
+# One target per line.
+example_username
+@second_example
+https://t.me/third_example

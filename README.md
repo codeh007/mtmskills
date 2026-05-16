@@ -61,3 +61,16 @@ skills/
 ```bash
 scripts/validate-skills
 ```
+
+
+# 收集的 技能仓库
+
+- https://github.com/anthropics/skills
+- https://github.com/mattpocock/skills
+- golang 开发 - https://github.com/cxuu/golang-skills
+- https://github.com/samber/cc-skills-golang/tree/main/skills
+- https://github.com/vercel-labs/skills
+
+# harness 框架收集
+
+- https://github.com/garrytan/gstack
