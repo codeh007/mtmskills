@@ -2,8 +2,6 @@
 
 ## 安装
 
-
-
 ```bash
 # 全局安装
 npx skills add https://github.com/codeh007/mtmskills --all --global --yes
