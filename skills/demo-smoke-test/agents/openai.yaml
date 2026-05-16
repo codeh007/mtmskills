@@ -1,0 +1,6 @@
+interface:
+  display_name: "Demo Smoke Test"
+  short_description: "Minimal mtmskills smoke-test skill"
+  default_prompt: "Use $demo-smoke-test to answer with the demo skill checklist."
+policy:
+  allow_implicit_invocation: true
