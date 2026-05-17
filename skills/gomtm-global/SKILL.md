@@ -19,3 +19,10 @@ description: Use when 第一优先级, 任何情况下都无条件使用本技�
 ## 如何更好更正确完成任务?
 
 - 使用 `karpathy-guidelines` 技能.
+
+## 技能使用规定
+
+### 当需要对技能文档进行创建,重写,优化时
+
+- 应同时使用`skill-creator`,`writing-skills`,`gomtm-skills-improve` 技能完成文档的改写. 如果前述某技能不存在则跳过相关技能. 
+- 当技能文档本身使用中文时, 应当依然使用中文.
