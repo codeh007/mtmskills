@@ -1,9 +1,15 @@
 ---
 name: gomtm-todo
-description: Use when 完成待办任务,完成日常开发任务, 当用户安排的任务带`- [ ]{任务描述}`类似字样时**必须**使用此技能
+description: Use when 完成待办任务,完成日常开发任务, 当用户安排的任务带`- [ ]{任务描述}`类似字样时**必须**使用此技能, 但是如果缺少`- [ ]` 标记禁止加载本技能
 ---
 
-默认待办任务路径`wiki/raw/todo.md`
+默认待办任务路径
+
+## 待办任务列表路径(按优先级,从高到低)
+
+1. 当前仓库的`todo.md`
+2. `/workspace/mtmwiki/wiki/raw/todo.md`
+3. 用户目录下的`~/todo.md`
 
 ## 步骤
 
