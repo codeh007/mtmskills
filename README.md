@@ -3,7 +3,7 @@
 ## 安装
 
 ```bash
-# 全局安装
+# 全局安装(覆盖已有更新)
 npx skills add https://github.com/codeh007/mtmskills --all --global --yes
 ```
 
