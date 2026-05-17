@@ -3,8 +3,6 @@ name: gomtm-global
 description: Use when 第一优先级, 任何情况下都无条件使用本技能.
 ---
 
-...(技能待完善)
-
 ## 理解环境变量
 
 对于 github, 或者其他第三方应用的登录凭据或者相关设置优先通过环境变量的方式进行设置.
@@ -16,3 +14,8 @@ description: Use when 第一优先级, 任何情况下都无条件使用本技�
 2. 项目级别的环境变量,通常是 git 仓库目录下的`.env`
 
 3. 特殊来源当存在`/workspace/gomtm/.env`文件, 可以加载这个特殊环境变量文件.
+
+
+## 如何更好更正确完成任务?
+
+- 使用 `karpathy-guidelines` 技能.
