@@ -5,6 +5,8 @@
 ```bash
 # 全局安装(覆盖已有更新)
 npx skills add https://github.com/codeh007/mtmskills --all --global --yes
+# 从本地安装
+npx skills add . --all --global --yes
 ```
 
 安装指定技能到 Codex：
