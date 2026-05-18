@@ -143,7 +143,7 @@ curl -fsSL https://.../install.sh | bash
 
 ## Build and Release Workflow
 
-### GitHub Actions 目标
+See also: `references/root-workflow-notes.md` for the workflow boundary, `references/mtminstaller-release-chain.md` for the release/download/checksum chain, and `references/online-install-bootstrap.md` for the final public bootstrap shape.
 
 `skills/gomtm-installer/src/` 下的源码应通过仓库根目录 `.github/workflows/` 中的 GitHub Actions 完成：
 

@@ -97,6 +97,10 @@ func runRelease(ctx context.Context, args []string, out io.Writer) error {
 	switch args[0] {
 	case "urls":
 		return runReleaseURLs(args[1:], out)
+	case "command":
+		return runReleaseCommand(args[1:], out)
+	case "bootstrap":
+		return runReleaseBootstrap(args[1:], out)
 	case "download":
 		return runReleaseDownload(ctx, args[1:], out)
 	case "verify":
@@ -119,6 +123,33 @@ func runReleaseURLs(args []string, out io.Writer) error {
 	artifact := release.DefaultArtifact(*repository, *version)
 	fmt.Fprintln(out, artifact.BinaryURL())
 	fmt.Fprintln(out, artifact.ChecksumURL())
+	return nil
+}
+
+func runReleaseCommand(args []string, out io.Writer) error {
+	fs := flag.NewFlagSet("release command", flag.ContinueOnError)
+	fs.SetOutput(out)
+	repository := fs.String("repo", defaultRepository, "GitHub repository in owner/name form")
+	version := fs.String("version", release.Version, "release tag to resolve")
+	output := fs.String("output", "./mtminstaller", "destination binary path")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	artifact := release.DefaultArtifact(*repository, *version)
+	fmt.Fprintln(out, release.DownloadCommand(artifact, *output))
+	return nil
+}
+
+func runReleaseBootstrap(args []string, out io.Writer) error {
+	fs := flag.NewFlagSet("release bootstrap", flag.ContinueOnError)
+	fs.SetOutput(out)
+	repository := fs.String("repo", defaultRepository, "GitHub repository in owner/name form")
+	version := fs.String("version", release.Version, "release tag to resolve")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	artifact := release.DefaultArtifact(*repository, *version)
+	fmt.Fprint(out, release.BootstrapScript(artifact))
 	return nil
 }
 
@@ -205,6 +236,8 @@ func usage(out io.Writer) {
 	fmt.Fprintln(out, "  mtminstaller agent-tools [--dry-run] [packages...]")
 	fmt.Fprintln(out, "  mtminstaller remote bootstrap [--dry-run] <target>")
 	fmt.Fprintln(out, "  mtminstaller release urls [--repo owner/name] [--version tag]")
+	fmt.Fprintln(out, "  mtminstaller release command [--repo owner/name] [--version tag] [--output path]")
+	fmt.Fprintln(out, "  mtminstaller release bootstrap [--repo owner/name] [--version tag]")
 	fmt.Fprintln(out, "  mtminstaller release download [--repo owner/name] [--version tag] [--output path]")
 	fmt.Fprintln(out, "  mtminstaller release verify --checksum path <binary>")
 	fmt.Fprintln(out, "  mtminstaller release install [--repo owner/name] [--version tag] [--output path]")
