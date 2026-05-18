@@ -15,14 +15,15 @@ description: Use when 第一优先级, 任何情况下都无条件使用本技�
 
 3. 特殊来源当存在`/workspace/gomtm/.env`文件, 可以加载这个特殊环境变量文件.
 
-
 ## 如何更好更正确完成任务?
 
-- 使用 `karpathy-guidelines` 技能.
+- 使用 `karpathy-guidelines` 技能。
+- 技能文档、workflow、安装器、发布器等仓内关键真相，优先对齐仓库根目录、README 与实际源码。
 
 ## 技能使用规定
 
-### 当需要对技能文档进行创建,重写,优化时
+### 当需要对技能文档进行创建、重写或优化时
 
-- 应同时使用`skill-creator`,`writing-skills`,`gomtm-skills-improve` 技能完成文档的改写. 如果前述某技能不存在则跳过相关技能. 
-- 当技能文档本身使用中文时, 应当依然使用中文.
+- 优先加载 `gomtm-skills-improve`，再结合 `hermes-agent-skill-authoring`、`writing-plans` 等相关技能。
+- 如果环境里还存在 `skill-creator` 或 `skill-writer`，也应一并参考；如果不存在则跳过，不要臆造。
+- 当技能文档本身使用中文时，应继续使用中文。

@@ -14,9 +14,11 @@ import pathlib
 import re
 import sys
 
+import yaml
+
 skill_md = pathlib.Path(sys.argv[1])
 folder_name = sys.argv[2]
-content = skill_md.read_text()
+content = skill_md.read_text(encoding="utf-8")
 
 if not content.startswith("---\n"):
     raise SystemExit(f"{skill_md}: missing YAML frontmatter")
@@ -25,24 +27,16 @@ match = re.match(r"^---\n(.*?)\n---(?:\n|$)", content, re.DOTALL)
 if not match:
     raise SystemExit(f"{skill_md}: invalid YAML frontmatter block")
 
-frontmatter = {}
-for lineno, raw_line in enumerate(match.group(1).splitlines(), start=2):
-    line = raw_line.strip()
-    if not line:
-        continue
-    simple = re.match(r"^([a-zA-Z][a-zA-Z0-9_-]*):\s*(.*)$", line)
-    if not simple:
-        raise SystemExit(f"{skill_md}:{lineno}: frontmatter must use simple key: value lines")
-    key, value = simple.groups()
-    if key not in {"name", "description"}:
-        raise SystemExit(f"{skill_md}:{lineno}: unexpected frontmatter key '{key}'")
-    value = value.strip()
-    if (value.startswith('"') and value.endswith('"')) or (value.startswith("'") and value.endswith("'")):
-        value = value[1:-1]
-    frontmatter[key] = value
+try:
+    frontmatter = yaml.safe_load(match.group(1)) or {}
+except yaml.YAMLError as exc:
+    raise SystemExit(f"{skill_md}: invalid YAML frontmatter: {exc}") from exc
 
-name = frontmatter.get("name", "").strip()
-description = frontmatter.get("description", "").strip()
+if not isinstance(frontmatter, dict):
+    raise SystemExit(f"{skill_md}: YAML frontmatter must be a mapping")
+
+name = str(frontmatter.get("name", "")).strip()
+description = str(frontmatter.get("description", "")).strip()
 
 if not name:
     raise SystemExit(f"{skill_md}: missing required frontmatter key 'name'")
@@ -61,8 +55,13 @@ if len(description) > 1024:
 if "<" in description or ">" in description:
     raise SystemExit(f"{skill_md}: description cannot contain angle brackets")
 
+body = content[match.end():].strip()
+if not body:
+    raise SystemExit(f"{skill_md}: body cannot be empty")
+
 print(f"{name}: valid")
 PY
+
 done < <(find "$repo_root/skills" -mindepth 2 -maxdepth 2 -name SKILL.md -print0 | sort -z)
 
 if [[ "$found" -eq 0 ]]; then

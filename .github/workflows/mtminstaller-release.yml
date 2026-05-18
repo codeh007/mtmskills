@@ -1,0 +1,63 @@
+name: mtminstaller release
+
+on:
+  push:
+    tags:
+      - "mtminstaller-v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            goos: linux
+            goarch: amd64
+          - os: ubuntu-latest
+            goos: linux
+            goarch: arm64
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: skills/gomtm-installer/src
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: skills/gomtm-installer/src/go.mod
+      - name: Build
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          VERSION: ${{ github.ref_name }}
+          COMMIT: ${{ github.sha }}
+        run: |
+          mkdir -p ../dist
+          go build -trimpath -ldflags "-s -w -X github.com/codeh007/mtmskills/skills/gomtm-installer/src/internal/release.Version=${VERSION} -X github.com/codeh007/mtmskills/skills/gomtm-installer/src/internal/release.Commit=${COMMIT} -X github.com/codeh007/mtmskills/skills/gomtm-installer/src/internal/release.Date=$(date -u +%Y-%m-%dT%H:%M:%SZ)" -o ../dist/mtminstaller-${{ matrix.goos }}-${{ matrix.goarch }} ./cmd/mtminstaller
+      - name: Calculate checksum
+        run: |
+          cd ../dist
+          sha256sum mtminstaller-${{ matrix.goos }}-${{ matrix.goarch }} > mtminstaller-${{ matrix.goos }}-${{ matrix.goarch }}.sha256
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mtminstaller-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: |
+            skills/gomtm-installer/dist/mtminstaller-${{ matrix.goos }}-${{ matrix.goarch }}
+            skills/gomtm-installer/dist/mtminstaller-${{ matrix.goos }}-${{ matrix.goarch }}.sha256
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Publish release assets
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/*

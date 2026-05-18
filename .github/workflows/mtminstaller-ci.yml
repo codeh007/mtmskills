@@ -1,0 +1,33 @@
+name: mtminstaller CI
+
+on:
+  pull_request:
+    paths:
+      - "skills/gomtm-installer/src/**"
+      - ".github/workflows/mtminstaller-ci.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "skills/gomtm-installer/src/**"
+      - ".github/workflows/mtminstaller-ci.yml"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: skills/gomtm-installer/src
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: skills/gomtm-installer/src/go.mod
+      - name: Verify module
+        run: go env GOMOD
+      - name: Run tests
+        run: go test ./...
+      - name: Build binary
+        run: go build -o ../dist/mtminstaller ./cmd/mtminstaller
+      - name: Smoke test
+        run: ../dist/mtminstaller --version
