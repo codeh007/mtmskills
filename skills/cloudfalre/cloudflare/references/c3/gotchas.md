@@ -66,7 +66,7 @@ env:
 
 | Framework | Issue | Fix |
 |-----------|-------|-----|
-| Next.js | create-next-app failed | `npm cache clean --force`, retry |
+| Next.js | create-next-app failed | Retry after confirming Node.js and npm are installed correctly |
 | Astro | Adapter missing | Install `@astrojs/cloudflare` |
 | Remix | Module errors | Update `@remix-run/cloudflare*` |
 
