@@ -22,6 +22,9 @@ description: Use when 需要安装、配置、诊断或维护 Codex CLI、~/.cod
 - 配置基础: <https://developers.openai.com/codex/config-basic>
 - 高级配置: <https://developers.openai.com/codex/config-advanced>
 - 配置参考: <https://developers.openai.com/codex/config-reference>
+- Codex app: <https://openai.com/codex/>
+- Codex app 介绍: <https://openai.com/index/introducing-the-codex-app/>
+- Codex Academy: <https://openai.com/academy/codex/>
 
 遇到版本相关问题时，先运行：
 
@@ -35,6 +38,7 @@ codex doctor --summary
 - 主配置：`~/.codex/config.toml`
 - 登录凭据：`~/.codex/auth.json`
 - 项目级配置：`<project>/.codex/config.toml`
+- 模板：`templates/config.toml`、`templates/auth.json`
 
 重要约束：`model_provider`、`model_providers`、`profiles`、`openai_base_url` 等 provider/auth 级配置必须放在用户级 `~/.codex/config.toml`。如果写进项目级 `.codex/config.toml`，新版本 Codex 会加载但提示 unsupported project-local config keys，并忽略这些 key。
 
@@ -45,6 +49,8 @@ cd ~/.codex
 cp config.toml "config.$(date +%Y%m%d-%H%M%S).toml"
 cp auth.json "auth.$(date +%Y%m%d-%H%M%S).json"
 ```
+
+模板文件位于 `templates/`，需要时直接复制到本机 `~/.codex/` 再改本地值，不在正文重复展开完整配置。
 
 ## OpenAI-compatible provider
 
@@ -114,99 +120,9 @@ curl -fsSL -H "Authorization: Bearer $key" \
 codex debug models | jq -r '.models[] | select(.visibility == "list") | .slug'
 ```
 
-## 标准 config.toml
+## 标准配置
 
-推荐使用一个 provider 加多个 profile。这样用户可以通过 `codex -p gpt-5.4`、`codex -p gpt-5.3-codex` 切换模型，无需再次编辑配置文件。
-
-```toml
-model_provider = "sub2api"
-model = "gpt-5.5"
-review_model = "gpt-5.5"
-model_reasoning_effort = "medium"
-disable_response_storage = true
-network_access = "enabled"
-windows_wsl_setup_acknowledged = true
-model_context_window = 1000000
-model_auto_compact_token_limit = 900000
-
-[model_providers.sub2api]
-name = "sub2api.yuepa8.com"
-base_url = "https://sub2api.yuepa8.com"
-wire_api = "responses"
-env_key = "SUB2API_API_KEY"
-request_max_retries = 4
-stream_max_retries = 10
-stream_idle_timeout_ms = 300000
-
-[profiles."gpt-5.5"]
-model_provider = "sub2api"
-model = "gpt-5.5"
-model_reasoning_effort = "medium"
-
-[profiles."gpt-5.4"]
-model_provider = "sub2api"
-model = "gpt-5.4"
-model_reasoning_effort = "medium"
-
-[profiles."gpt-5.4-2026-03-05"]
-model_provider = "sub2api"
-model = "gpt-5.4-2026-03-05"
-model_reasoning_effort = "medium"
-
-[profiles."gpt-5.4-mini"]
-model_provider = "sub2api"
-model = "gpt-5.4-mini"
-model_reasoning_effort = "medium"
-
-[profiles."gpt-5.3-codex"]
-model_provider = "sub2api"
-model = "gpt-5.3-codex"
-model_reasoning_effort = "medium"
-
-[profiles."gpt-5.2"]
-model_provider = "sub2api"
-model = "gpt-5.2"
-model_reasoning_effort = "medium"
-
-[profiles."gpt-5.2-2025-12-11"]
-model_provider = "sub2api"
-model = "gpt-5.2-2025-12-11"
-model_reasoning_effort = "medium"
-
-[profiles."gpt-5.2-chat-latest"]
-model_provider = "sub2api"
-model = "gpt-5.2-chat-latest"
-model_reasoning_effort = "medium"
-
-[profiles."gpt-5.2-pro"]
-model_provider = "sub2api"
-model = "gpt-5.2-pro"
-model_reasoning_effort = "medium"
-
-[profiles."gpt-5.2-pro-2025-12-11"]
-model_provider = "sub2api"
-model = "gpt-5.2-pro-2025-12-11"
-model_reasoning_effort = "medium"
-
-[profiles.no_approval]
-approval_policy = "never"
-sandbox_mode = "workspace-write"
-
-[sandbox_workspace_write]
-network_access = true
-
-[tui.model_availability_nux]
-"gpt-5.5" = 4
-"gpt-5.4" = 4
-"gpt-5.4-2026-03-05" = 4
-"gpt-5.4-mini" = 4
-"gpt-5.3-codex" = 4
-"gpt-5.2" = 4
-"gpt-5.2-2025-12-11" = 4
-"gpt-5.2-chat-latest" = 4
-"gpt-5.2-pro" = 4
-"gpt-5.2-pro-2025-12-11" = 4
-```
+推荐使用一个 provider 加多个 profile。完整模板见 `templates/config.toml`，复制后再按本机环境调整。
 
 环境变量方式：
 
@@ -231,14 +147,16 @@ wire_api = "responses"
 requires_openai_auth = true
 ```
 
-对应 `auth.json`：
+对应 `auth.json` 见 `templates/auth.json`。
 
-```json
-{
-  "auth_mode": "apikey",
-  "OPENAI_API_KEY": "sk-..."
-}
-```
+## Windows
+
+Windows 下的配置结构和 Linux 基本一致，只有少量差异需要单独注意。
+
+- `~/.codex/` 通常对应 `%USERPROFILE%\.codex\`
+- 备份命令可改成 PowerShell 的 `Copy-Item`
+- 如果在 WSL 里使用 Codex，保留 `windows_wsl_setup_acknowledged = true`
+- 直接在 Windows 终端里用时，先确认 `SUB2API_API_KEY` 等环境变量对当前会话可见
 
 ## 切换与验证
 
@@ -266,6 +184,17 @@ codex debug models | jq -r '.models[] | [.slug, .visibility, .supported_in_api] 
 若 `codex doctor` 输出 `Ignored unsupported project-local config keys`，说明 provider 或 profiles 被写到了项目级 `.codex/config.toml`。把这些 key 移到 `~/.codex/config.toml`。
 
 若 `codex exec` 在受限环境中报 `failed to initialize in-process app-server client: Read-only file system`，这是当前 Codex 运行时初始化问题，不等同于 provider 或模型不可用。此时用 `codex doctor --summary`、`codex debug models`、直接 `/v1/models` 和 `/v1/responses` 调用分别验证配置加载、模型目录和上游模型可调用性。
+
+## Codex App
+
+Codex App 是桌面端，不是 CLI。它更适合管理多个 agent、查看 diff、在项目间切换，以及把本地和云端任务接续起来。
+
+最小指引：
+
+1. 用同一个 ChatGPT 账号登录。
+2. 选择仓库后直接发起任务，按 thread 管理多个 agent。
+3. 需要时查看 diff，再回到编辑器里补改。
+4. 它和 CLI、IDE extension 属于同一套 Codex 体验，登录同一账号即可串起来。
 
 ## 排查规则
 
