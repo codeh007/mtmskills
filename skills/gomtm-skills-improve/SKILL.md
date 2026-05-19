@@ -51,6 +51,10 @@ description: Use when 用户明确指出某个 gomtm 技能文档或其参考文
 - 所有源码反思技能文档不能有重复的反思点(反思描述指引)。
 - 技能文档描述应当确保符合skill规范且有刚好且**足够**线索让 agent在最合适的时机正确加载和使用技能。
 - 使用正向描述, 应描述 "是什么,为什么,怎么做"之类的描述, 而不是~~"而不是..."~~
+- 使用相对路径引用关联文档和源码
+   错误:`skills/some-skill-name/references/some-doc.md`
+   正确:`references/some-doc.md`
+
 
 ### 例子
 
