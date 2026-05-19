@@ -12,3 +12,6 @@ description: Use when 确保基于linux的开发环境正确
 
 - [superpowers](https://github.com/obra/superpowers)
     An agentic skills framework & software development methodology that works.
+
+- [matt-skills]
+    安装命令:`npx -y skills@latest add mattpocock/skills --global --yes`
