@@ -1,5 +1,5 @@
 ---
-name: doc-migrate
+name: mtm-doc-migrate
 description: Use when 将一个或多个文档内容合并到另一个文档中，并需要解决重复、冲突、引用更新或知识合并取舍。
 ---
 

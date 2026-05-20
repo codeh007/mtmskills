@@ -49,20 +49,10 @@ systemctl --user -M code@ status hermes-gateway --no-pager || true
 
 ```bash
 sudo -iu code bash -lc 'curl -fsSL https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.sh | bash'
-sudo -iu code bash -lc '~/.local/bin/hermes --version'
-sudo -iu code bash -lc '~/.local/bin/hermes doctor'
-sudo -iu code bash -lc '~/.local/bin/hermes config check'
+hermes --version
+hermes doctor'
+hermes config check'
 ```
-
-期望布局：
-
-| 内容 | 路径 |
-| --- | --- |
-| 源码与 venv | `/home/code/.hermes/hermes-agent/` |
-| 命令入口 | `/home/code/.local/bin/hermes` |
-| 配置、会话、日志 | `/home/code/.hermes/` |
-| 主要配置 | `/home/code/.hermes/config.yaml` |
-| secrets | `/home/code/.hermes/.env` |
 
 ### 4. 配置单一默认模型
 
@@ -88,14 +78,12 @@ HERMES_MODEL_API_KEY=<redacted>
 如果当前 Hermes 版本要求 `model.api_key` 直接在 `config.yaml` 中配置，则可以按官方当前文档执行，但交付记录中只能写“已配置”，不要泄露值。配置后验证：
 
 ```bash
-sudo -iu code bash -lc '~/.local/bin/hermes chat -q "Reply with OK" --quiet'
+hermes chat -q "Reply with OK" --quiet
 ```
 
 ### 5. 配置 Telegram Gateway
 
 Telegram 私聊必须有 bot token 和数字 user ID。用户名、bot name、手机号都不能替代 `TELEGRAM_ALLOWED_USERS`。
-
-`/home/code/.hermes/.env`：
 
 ```env
 TELEGRAM_BOT_TOKEN=<redacted>
@@ -109,7 +97,7 @@ TELEGRAM_GROUP_ALLOWED_USERS=<numeric-user-id>
 TELEGRAM_GROUP_ALLOWED_CHATS=<negative-chat-id>
 ```
 
-`/home/code/.hermes/config.yaml` 中可保留安全默认：
+`~/.hermes/config.yaml` 中可保留安全默认：
 
 ```yaml
 telegram:
@@ -128,10 +116,9 @@ telegram:
 普通 VPS 优先使用 user service，并启用 linger 让 `code` 用户服务退出 SSH 后继续运行：
 
 ```bash
-sudo loginctl enable-linger code
-sudo -iu code bash -lc '~/.local/bin/hermes gateway install'
-sudo -iu code bash -lc '~/.local/bin/hermes gateway start'
-sudo -iu code bash -lc '~/.local/bin/hermes gateway status'
+hermes gateway install'
+hermes gateway start'
+hermes gateway status'
 ```
 
 日志检查不要打印 `.env`：
@@ -146,11 +133,11 @@ sudo -iu code bash -lc 'tail -n 120 ~/.hermes/logs/gateway.log'
 
 最小验收清单：
 
-- `sudo -iu code bash -lc '~/.local/bin/hermes --version'` 成功。
-- `sudo -iu code bash -lc '~/.local/bin/hermes doctor'` 无阻塞错误。
-- `sudo -iu code bash -lc '~/.local/bin/hermes config check'` 无必须迁移项。
-- `sudo -iu code bash -lc '~/.local/bin/hermes chat -q "Reply with OK" --quiet'` 能调用模型回复。
-- `sudo -iu code bash -lc '~/.local/bin/hermes gateway status'` 显示运行中。
+- `hermes --version'` 成功。
+- `hermes doctor'` 无阻塞错误。
+- `hermes config check'` 无必须迁移项。
+- `hermes chat -q "Reply with OK" --quiet'` 能调用模型回复。
+- `hermes gateway status'` 显示运行中。
 - 被允许的 Telegram 用户私聊 bot 能得到回复。
 - `~/.hermes/logs/gateway.log` 没有 token invalid、unauthorized、model auth failed、event loop crash 等错误。
 
@@ -186,7 +173,7 @@ Termux installer 会自动走 Android 分支，使用 `pkg` 安装依赖并优�
 停止 gateway：
 
 ```bash
-sudo -iu code bash -lc '~/.local/bin/hermes gateway stop'
+hermes gateway stop'
 ```
 
-恢复配置时，只恢复预先备份的 `/home/code/.hermes/config.yaml` 和 `/home/code/.hermes/.env`。bot token 泄露时让客户在 BotFather `/revoke` 或重新生成 token；模型 key 泄露时在模型 API 平台轮换。
+恢复配置时，只恢复预先备份的 `~/.hermes/config.yaml` 和 `~/.hermes/.env`。bot token 泄露时让客户在 BotFather `/revoke` 或重新生成 token；模型 key 泄露时在模型 API 平台轮换。
