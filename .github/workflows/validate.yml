@@ -1,4 +1,4 @@
-name: Validate Skills
+name: Check Skills
 
 on:
   pull_request:
@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-node@v4
         with:
-          python-version: "3.x"
-      - run: bash scripts/validate-skills
+          node-version: "20"
+      - run: npx -y skills add . --list
