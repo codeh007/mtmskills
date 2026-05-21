@@ -1,3 +1,6 @@
+# Copy this to ~/.hermes/config.yaml. Put startup env toggles such as
+# HERMES_TUI=1 in env.default.example / ~/.hermes/.env, not in config.yaml.
+
 model:
   default: <model-id>
   model: <model-id>

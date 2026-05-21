@@ -17,7 +17,7 @@ cd <repo-root>
 npx -y gitnexus@latest analyze
 hermes mcp add gitnexus --command npx --args -y gitnexus@latest mcp
 hermes mcp test gitnexus
-hermes
+hermes  # with HERMES_TUI=1 in ~/.hermes/.env, this opens the TUI
 ```
 
 GitNexus 常用工具：`query`、`context`、`impact`、`detect_changes`、`rename`、`cypher`。
