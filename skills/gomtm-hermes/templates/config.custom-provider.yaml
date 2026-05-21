@@ -1,0 +1,25 @@
+model:
+  provider: custom
+  default: <model-id>
+  base_url: ${HERMES_MODEL_BASE_URL}
+  api_key: ${HERMES_MODEL_API_KEY}
+  api_mode: chat_completions
+  context_length: 1050000
+  models:
+    <model-id>:
+      context_length: 1050000
+auxiliary:
+  compression:
+    provider: auto
+    model: ''
+    base_url: ''
+    api_key: ''
+    timeout: 120
+    extra_body: {}
+  title_generation:
+    provider: auto
+    model: ''
+    base_url: ''
+    api_key: ''
+    timeout: 30
+    extra_body: {}
