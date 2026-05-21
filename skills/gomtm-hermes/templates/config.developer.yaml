@@ -33,8 +33,6 @@ model_aliases:
     api_mode: chat_completions
 
 skills:
-  # Add shared skill directories only when needed. Hermes always scans
-  # $HERMES_HOME/skills first. Keep inline_shell false for untrusted sources.
   external_dirs:
     - ~/.agents/skills
     # - ~/.config/agents/skills
@@ -44,9 +42,6 @@ skills:
 agent:
   tool_use_enforcement: auto
 
-# GitNexus MCP: index each repository with `npx -y gitnexus@latest analyze`,
-# then start Hermes from that repo root or set TERMINAL_CWD=<repo-root> so
-# AGENTS.md / CLAUDE.md GitNexus rules are injected into the system prompt.
 mcp_servers:
   gitnexus:
     command: npx
