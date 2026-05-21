@@ -74,6 +74,78 @@ Hermes 行为归官方 `hermes-agent` 包、`HERMES_HOME`、`config.yaml`、`.en
 7. gomtmui 运行 focused vitest 与 `bun run check`；mtmai 运行相关 pytest；gomtm 运行相关 Go tests。
 8. 涉及 gomtm 源码符号修改时，按项目 GitNexus 规则先做 impact analysis，再编辑。
 
+## User-level / External Skills
+
+`npx -y skills@latest` 属于 Vercel Labs 的 `skills` CLI（npm 包 `skills`）。执行 Hermes 技能目录相关任务时，先区分三类路径：
+
+1. Hermes 原生技能目录：`$HERMES_HOME/skills`，默认通常是 `~/.hermes/skills`。
+2. `skills` CLI 的 agent-specific 全局目录：由 `--agent` 决定，例如 `--agent hermes-agent` 写入 `~/.hermes/skills`，`--agent codex` 写入 `${CODEX_HOME:-~/.codex}/skills`。
+3. `skills` CLI 的 universal/user-level 目录：项目级 canonical path 是 `.agents/skills/`；全局 universal 路径是 `~/.config/agents/skills`。部分 agent 在 `skills` CLI 的表中也把自己的全局路径映射到 `~/.agents/skills`，但 **Hermes Agent 官方不会自动扫描 `~/.agents/skills`**。
+
+当前 `skills` CLI 文档/源码要点：
+
+- `npx -y skills@latest add <repo> -g -a hermes-agent ...` 安装到 `~/.hermes/skills`，Hermes 可直接加载。
+- `npx -y skills@latest add <repo> -g -a codex ...` 安装到 `${CODEX_HOME:-~/.codex}/skills`，不是 `~/.agents/skills`。
+- `npx -y skills@latest add <repo> -g -a universal ...` 安装到 `~/.config/agents/skills`。
+- `~/.agents/skills` 不是所有 AI agent 共享的唯一默认全局路径；它只是部分 agent 的 global path，同时 `.agents/skills/` 是很多 agent 的 project path。
+- Codex 在 `skills` CLI 映射中使用 project path `.agents/skills/`，global path 是 `${CODEX_HOME:-~/.codex}/skills`；不要假设 Codex CLI 默认加载 `~/.agents/skills`。
+- `skills` CLI 通过 `-a/--agent` 决定链接/安装到哪些 agent 目录；如果没有明确包含 `hermes-agent`，安装结果可能不在 Hermes 原生目录。
+
+Hermes 支持通过 `config.yaml` 的 `skills.external_dirs` 读取额外技能目录。官方源码约定：
+
+```yaml
+skills:
+  external_dirs:
+    - ~/.agents/skills
+    - ~/.config/agents/skills
+  template_vars: true
+  inline_shell: false
+```
+
+行为规则：
+
+1. `external_dirs` 会展开 `~` 和 `${VAR}`，相对路径按 `$HERMES_HOME` 解析。
+2. 只加载实际存在的目录；不存在的目录会被跳过。
+3. Hermes 本地目录 `$HERMES_HOME/skills` 优先，外部目录随后扫描；同名技能由本地目录优先，重复名在显式 `skill_view` 时可能触发歧义提示。
+4. 外部目录按只读共享技能目录使用；通过 `skill_manage(action='create')` 创建的新技能仍写入 `$HERMES_HOME/skills`。
+5. 修改后启动新会话；gateway 场景执行 `hermes gateway restart` 或新 session。
+6. 对不完全信任的外部技能源不要开启 `skills.inline_shell`；保持默认 `false`。
+
+推荐配置命令：
+
+```bash
+hermes config set skills.external_dirs '["~/.agents/skills"]'
+# 如需同时读取 universal 全局目录：
+# hermes config set skills.external_dirs '["~/.agents/skills", "~/.config/agents/skills"]'
+```
+
+如果 `hermes config set` 把列表写成了字符串，直接修正 `~/.hermes/config.yaml` 为 YAML list：
+
+```yaml
+skills:
+  external_dirs:
+    - ~/.agents/skills
+```
+
+验证：
+
+```bash
+python - <<'PY'
+from agent.skill_utils import _external_dirs_cache_clear, get_external_skills_dirs, get_all_skills_dirs
+_external_dirs_cache_clear()
+print('external=', [str(p) for p in get_external_skills_dirs()])
+print('all=', [str(p) for p in get_all_skills_dirs()])
+PY
+hermes skills list
+hermes chat --quiet --skills <skill-name> -q '只回复 OK'
+```
+
+优先级建议：
+
+1. 若希望 `npx skills` 安装结果专供 Hermes 使用，优先安装时显式指定 `-a hermes-agent`。
+2. 若希望 Hermes 同时读取其它 agent 或 universal 用户级技能目录，再配置 `skills.external_dirs`。
+3. 不要用大量手工 symlink 代替 `skills.external_dirs`；symlink 适合临时兼容，但配置额外目录更清晰、可维护。
+
 ## Model Configuration
 
 ### Current OpenAI-compatible shape
@@ -331,6 +403,9 @@ hermes sessions list
 8. 跳过 `hermes -z` 模型烟雾测试。
 9. 把本机 checkout 绝对路径写成可复用技能规范。
 10. 使用已过时的固定用户名或固定 `/home/<user>` 路径作为通用部署前提。
+11. 误以为 `~/.agents/skills` 是 Hermes 默认扫描路径；Hermes 默认只扫描 `$HERMES_HOME/skills`，共享目录需要 `skills.external_dirs`。
+12. 误以为 Codex 全局 skills 路径是 `~/.agents/skills`；`skills` CLI 当前映射中 Codex global path 是 `${CODEX_HOME:-~/.codex}/skills`。
+13. 使用 `hermes config set skills.external_dirs '[...]'` 后没有检查 YAML 类型，导致列表被写成字符串。
 
 ## Verification Checklist
 
@@ -342,4 +417,4 @@ hermes sessions list
 - [ ] `hermes -z "Reply exactly: OK" --provider custom:<provider-slug> --model <model-id> --ignore-rules` 成功。
 - [ ] gateway 场景完成 `hermes gateway status` 与日志检查。
 - [ ] gomtmui / mtmai / gomtm 改动完成对应 focused tests。
-- [ ] 新增或更新的技能通过发现检查并可全局安装。
+- [ ] 涉及 Hermes 共享/用户级技能目录时，已检查 `$HERMES_HOME/skills`、`skills.external_dirs`、`npx skills ls -g -a <agent>` 与运行时 `hermes chat --skills <skill>`。
