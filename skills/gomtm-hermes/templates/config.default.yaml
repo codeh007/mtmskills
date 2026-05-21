@@ -1,0 +1,64 @@
+# Hermes Agent default configuration template
+# Audience: normal/non-developer users who need one model endpoint,
+# optional Telegram gateway, and optional shared skills directories.
+# Copy relevant sections into ~/.hermes/config.yaml.
+
+model:
+  default: <model-id>
+  model: <model-id>
+  base_url: ${HERMES_MODEL_BASE_URL}
+  api_key: ${HERMES_MODEL_API_KEY}
+  api_mode: chat_completions
+  context_length: 1050000
+  models:
+    <model-id>:
+      context_length: 1050000
+
+custom_providers:
+  - name: <Provider Display Name>
+    base_url: ${HERMES_MODEL_BASE_URL}
+    api_key: ${HERMES_MODEL_API_KEY}
+    api_mode: chat_completions
+    model: <model-id>
+    models:
+      <model-id>:
+        context_length: 1050000
+
+# Keeps `hermes -z ... --model <model-id>` on the custom endpoint even when
+# the model name overlaps with OpenRouter/OpenAI/Codex catalogs.
+model_aliases:
+  <model-id>:
+    provider: custom
+    model: <model-id>
+    base_url: ${HERMES_MODEL_BASE_URL}
+    api_key: ${HERMES_MODEL_API_KEY}
+    api_mode: chat_completions
+
+skills:
+  # Add only directories that should be shared with Hermes.
+  # Hermes always scans $HERMES_HOME/skills first.
+  external_dirs:
+    - ~/.agents/skills
+  template_vars: true
+  inline_shell: false
+
+agent:
+  tool_use_enforcement: auto
+
+# Optional. Keep `auto` only when the environment has an auxiliary-capable
+# provider configured; otherwise set these explicitly to the same custom endpoint.
+auxiliary:
+  compression:
+    provider: auto
+    model: ''
+    base_url: ''
+    api_key: ''
+    timeout: 120
+    extra_body: {}
+  title_generation:
+    provider: auto
+    model: ''
+    base_url: ''
+    api_key: ''
+    timeout: 30
+    extra_body: {}

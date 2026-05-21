@@ -1,0 +1,75 @@
+# Hermes Agent developer configuration template
+# Audience: developers who want Hermes to work inside code repositories with
+# GitNexus code intelligence via MCP plus project context files.
+# Copy relevant sections into ~/.hermes/config.yaml.
+
+model:
+  default: <model-id>
+  model: <model-id>
+  base_url: ${HERMES_MODEL_BASE_URL}
+  api_key: ${HERMES_MODEL_API_KEY}
+  api_mode: chat_completions
+  context_length: 1050000
+  models:
+    <model-id>:
+      context_length: 1050000
+
+custom_providers:
+  - name: <Provider Display Name>
+    base_url: ${HERMES_MODEL_BASE_URL}
+    api_key: ${HERMES_MODEL_API_KEY}
+    api_mode: chat_completions
+    model: <model-id>
+    models:
+      <model-id>:
+        context_length: 1050000
+
+model_aliases:
+  <model-id>:
+    provider: custom
+    model: <model-id>
+    base_url: ${HERMES_MODEL_BASE_URL}
+    api_key: ${HERMES_MODEL_API_KEY}
+    api_mode: chat_completions
+
+skills:
+  # Add shared skill directories only when needed. Hermes always scans
+  # $HERMES_HOME/skills first. Keep inline_shell false for untrusted sources.
+  external_dirs:
+    - ~/.agents/skills
+    # - ~/.config/agents/skills
+  template_vars: true
+  inline_shell: false
+
+agent:
+  tool_use_enforcement: auto
+
+# GitNexus MCP: index each repository with `npx -y gitnexus@latest analyze`,
+# then start Hermes from that repo root or set TERMINAL_CWD=<repo-root> so
+# AGENTS.md / CLAUDE.md GitNexus rules are injected into the system prompt.
+mcp_servers:
+  gitnexus:
+    command: npx
+    args:
+      - -y
+      - gitnexus@latest
+      - mcp
+    timeout: 180
+    connect_timeout: 60
+    supports_parallel_tool_calls: true
+
+auxiliary:
+  compression:
+    provider: auto
+    model: ''
+    base_url: ''
+    api_key: ''
+    timeout: 120
+    extra_body: {}
+  title_generation:
+    provider: auto
+    model: ''
+    base_url: ''
+    api_key: ''
+    timeout: 30
+    extra_body: {}

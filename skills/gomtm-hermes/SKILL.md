@@ -74,6 +74,21 @@ Hermes 行为归官方 `hermes-agent` 包、`HERMES_HOME`、`config.yaml`、`.en
 7. gomtmui 运行 focused vitest 与 `bun run check`；mtmai 运行相关 pytest；gomtm 运行相关 Go tests。
 8. 涉及 gomtm 源码符号修改时，按项目 GitNexus 规则先做 impact analysis，再编辑。
 
+## Configuration Templates
+
+`templates/` 维护两套主模板：
+
+- `templates/config.default.yaml` + `templates/env.default.example`：普通用户。包含单一模型 endpoint、`skills.external_dirs: ["~/.agents/skills"]`、可选 Telegram 和基础 auxiliary 配置。
+- `templates/config.developer.yaml` + `templates/env.developer.example`：开发者。包含 default 模板内容，并补 GitNexus MCP。
+- 旧的 `templates/config.custom-provider.yaml`、`templates/env.custom-provider.example`、`templates/env.telegram.example` 作为兼容片段保留。
+
+选择规则：
+
+- 只做聊天、Telegram、基础自动化：用 default 模板。
+- 要在代码仓库里开发、审查影响范围、遵守 GitNexus 规则：用 developer 模板。
+- 所有 secret 只放 `.env`、profile secret store、容器 secret 或运行环境；`config.yaml` 只保留 `${VAR}` 引用。
+- 修改 `config.yaml`、`.env`、MCP 或 context files 后，开启新 session；gateway 场景执行 restart。
+
 ## User-level / External Skills
 
 `npx -y skills@latest` 属于 Vercel Labs 的 `skills` CLI（npm 包 `skills`）。执行 Hermes 技能目录相关任务时，先区分三类路径：
@@ -150,7 +165,12 @@ hermes chat --quiet --skills <skill-name> -q '只回复 OK'
 
 ### Current OpenAI-compatible shape
 
-模板文件：`templates/config.custom-provider.yaml`、`templates/env.custom-provider.example`。
+完整模板优先使用：
+
+- 普通用户：`templates/config.default.yaml`、`templates/env.default.example`
+- 开发者：`templates/config.developer.yaml`、`templates/env.developer.example`
+
+兼容片段：`templates/config.custom-provider.yaml`、`templates/env.custom-provider.example`、`templates/env.telegram.example`。
 
 `config.yaml` 推荐形态：
 
@@ -343,6 +363,35 @@ Termux 依赖通过 `pkg` 安装。失败时补齐 `python`、`git`、`clang`、
 
 云端 Android 设备操作时结合 `using-vmoscloud` 和 `gomtm-adb-operate`。Termux 场景使用 Termux 自身进程管理、shell profile 和官方 Hermes 命令。
 
+## Developer Code Intelligence / GitNexus MCP
+
+当 Hermes 用于开发代码仓库时，优先使用 `templates/config.developer.yaml`，并阅读 `references/hermes-gitnexus-mcp.md`。
+
+关键结论：
+
+1. GitNexus 的正确接入由三层组成：`npx -y gitnexus@latest analyze` 建立索引；Hermes `mcp_servers.gitnexus` 连接 MCP；目标仓库 `AGENTS.md` / `CLAUDE.md` 写明 GitNexus 使用规则。
+2. Hermes 会加载 context files，但依赖启动位置：CLI 从目标 repo 根目录启动；gateway / service / TUI 嵌入场景设置 `TERMINAL_CWD=<repo-root>`；`--ignore-rules` 会跳过 context files。
+3. MCP 提供 `query`、`context`、`impact`、`detect_changes`、`rename` 等工具能力；是否“必须使用”应由项目 context file 约束。
+4. 如果 GitNexus 工具提示索引过时，先在目标 repo 执行 `npx -y gitnexus@latest analyze`，再继续源码修改。
+5. 涉及 gomtm 源码符号修改时，遵守项目 `AGENTS.md` 中 GitNexus 规则：改符号前 impact analysis，提交前 detect changes。
+
+开发者初始化：
+
+```bash
+cd <repo-root>
+npx -y gitnexus@latest analyze
+npx -y gitnexus@latest status
+hermes mcp add gitnexus --command npx --args -y gitnexus@latest mcp
+hermes mcp test gitnexus
+hermes
+```
+
+gateway / service 场景确保：
+
+```bash
+TERMINAL_CWD=<repo-root> hermes gateway run
+```
+
 ## Kanban and gomtmui Web UI Alignment
 
 当需求涉及 gomtmui Hermes 最新 Web UI、Kanban、dashboard plugin、gateway dispatcher 或 selected server 安全代理时，阅读 `references/hermes-kanban-gomtmui-parity.md`。
@@ -385,11 +434,16 @@ hermes sessions list
 
 ## Support Files
 
-- `templates/config.custom-provider.yaml` — 自定义 OpenAI-compatible endpoint 配置模板。
-- `templates/env.custom-provider.example` — secret 和 endpoint 环境变量模板。
-- `templates/env.telegram.example` — Telegram gateway 环境变量模板。
+- `templates/config.default.yaml` — 普通用户默认配置模板：单一模型 endpoint、可选技能目录和基础辅助模型配置。
+- `templates/env.default.example` — 普通用户 `.env` 模板：模型 endpoint、API key、可选 Telegram。
+- `templates/config.developer.yaml` — 开发者配置模板：默认模型配置 + GitNexus MCP + 共享技能目录。
+- `templates/env.developer.example` — 开发者 `.env` 模板：模型、Telegram 与可选 GitNexus tuning 变量。
+- `templates/config.custom-provider.yaml` — 自定义 OpenAI-compatible endpoint 兼容片段。
+- `templates/env.custom-provider.example` — endpoint secret 兼容片段。
+- `templates/env.telegram.example` — Telegram gateway 环境变量兼容片段。
 - `scripts/verify-custom-provider.sh` — 自定义 endpoint 模型与 chat completions 烟雾验证。
 - `references/hermes-kanban-gomtmui-parity.md` — Kanban 与 gomtmui 对齐细节。
+- `references/hermes-gitnexus-mcp.md` — Hermes + GitNexus MCP 开发者配置细节。
 
 ## Common Pitfalls
 
@@ -406,6 +460,8 @@ hermes sessions list
 11. 误以为 `~/.agents/skills` 是 Hermes 默认扫描路径；Hermes 默认只扫描 `$HERMES_HOME/skills`，共享目录需要 `skills.external_dirs`。
 12. 误以为 Codex 全局 skills 路径是 `~/.agents/skills`；`skills` CLI 当前映射中 Codex global path 是 `${CODEX_HOME:-~/.codex}/skills`。
 13. 使用 `hermes config set skills.external_dirs '[...]'` 后没有检查 YAML 类型，导致列表被写成字符串。
+14. 只配置 GitNexus MCP，却没有让 Hermes 加载目标 repo 的 `AGENTS.md` / `CLAUDE.md`；开发者场景应从 repo 根目录启动，或设置 `TERMINAL_CWD=<repo-root>`。
+15. 使用 `--ignore-rules` 验证开发者配置；该模式会跳过 context files，无法验证 GitNexus 规则注入。
 
 ## Verification Checklist
 
@@ -418,3 +474,4 @@ hermes sessions list
 - [ ] gateway 场景完成 `hermes gateway status` 与日志检查。
 - [ ] gomtmui / mtmai / gomtm 改动完成对应 focused tests。
 - [ ] 涉及 Hermes 共享/用户级技能目录时，已检查 `$HERMES_HOME/skills`、`skills.external_dirs`、`npx skills ls -g -a <agent>` 与运行时 `hermes chat --skills <skill>`。
+- [ ] 开发者 / GitNexus 场景已执行 `npx -y gitnexus@latest status`、`hermes mcp test gitnexus`，并确认 Hermes 从 repo 根目录启动或设置了 `TERMINAL_CWD=<repo-root>`。
