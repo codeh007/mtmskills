@@ -16,6 +16,7 @@
    - entry/css: `dist/index.js` / `dist/style.css`
    - API: `plugin_api.py`
 4. gomtm / mtmai / gomtmui 的职责是 host adaptation。业务真相继续属于官方 `hermes-agent`：`kanban_db`、`plugin_api.py`、gateway dispatcher、worker `kanban_*` tools、`~/.hermes/kanban*.db`。
+5. Kanban dispatcher 的后台 worker 需要非 TTY `hermes chat -q ...` 正常工作；服务/共享主机不要全局设置 `HERMES_TUI=1`，细节见 `references/kanban-worker-tui-env.md`。
 
 ## 推荐对齐路径
 

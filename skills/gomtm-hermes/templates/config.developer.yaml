@@ -1,8 +1,8 @@
 # Hermes Agent developer configuration template
 # Audience: developers who want Hermes to work inside code repositories with
 # GitNexus code intelligence via MCP plus project context files.
-# Copy relevant sections into ~/.hermes/config.yaml. Put startup env toggles
-# such as HERMES_TUI=1 in env.developer.example / ~/.hermes/.env.
+# Copy relevant sections into ~/.hermes/config.yaml. Keep interactive startup
+# preferences out of service/shared env files; use `hermes --tui` explicitly.
 
 model:
   default: <model-id>

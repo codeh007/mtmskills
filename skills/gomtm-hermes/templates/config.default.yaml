@@ -1,5 +1,5 @@
-# Copy this to ~/.hermes/config.yaml. Put startup env toggles such as
-# HERMES_TUI=1 in env.default.example / ~/.hermes/.env, not in config.yaml.
+# Copy this to ~/.hermes/config.yaml. Keep interactive startup preferences out of
+# service/shared env files; use `hermes --tui` explicitly for TUI sessions.
 
 model:
   default: <model-id>

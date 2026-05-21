@@ -51,7 +51,7 @@ Hermes 行为归官方 `hermes-agent` 包、`HERMES_HOME`、`config.yaml`、`.en
 4. `custom_providers:` 是当前自定义 provider 选择器入口；`providers:` dict 也被 runtime 支持，但技能模板优先使用 `custom_providers:`，便于 `custom:<slug>` 选择。
 5. `model:` 可以保存当前默认 endpoint/model；默认模型的 `provider` 不应误写成 `openrouter`，否则会回到 OpenRouter 并触发 401。
 6. `config.yaml` 保存结构和 `${VAR}` 引用；`.env` 或运行环境保存 secret。
-7. 官方 TUI 是交互式 CLI 推荐入口；让裸 `hermes` 默认进入 TUI 使用 `.env` 中的 `HERMES_TUI=1`，不是 `config.yaml`。
+7. 官方 TUI 是交互式入口；需要 TUI 时显式运行 `hermes --tui`。不要在共享/服务主机的 `$HERMES_HOME/.env` 默认写 `HERMES_TUI=1`，否则 `hermes chat -q`、Kanban worker、cron 等非 TTY 后台任务会被强制进 TUI 并失败；细节见 `references/kanban-worker-tui-env.md`。
 8. `hermes gateway run` 启动 messaging gateway、cron scheduler 与 Kanban dispatcher；Web UI 入口是 `hermes dashboard`。
 9. 新会话或 gateway restart 才会稳定读取配置变化。
 
@@ -79,15 +79,15 @@ Hermes 行为归官方 `hermes-agent` 包、`HERMES_HOME`、`config.yaml`、`.en
 
 `templates/` 维护两套主模板：
 
-- `templates/config.default.yaml` + `templates/env.default.example`：普通用户。包含单一模型 endpoint、`skills.external_dirs: ["~/.agents/skills"]`、默认 `HERMES_TUI=1`、可选 Telegram 和基础 auxiliary 配置。
-- `templates/config.developer.yaml` + `templates/env.developer.example`：开发者。包含 default 模板内容、默认 `HERMES_TUI=1`，并补 GitNexus MCP。
+- `templates/config.default.yaml` + `templates/env.default.example`：普通用户。包含单一模型 endpoint、`skills.external_dirs: ["~/.agents/skills"]`、可选 Telegram 和基础 auxiliary 配置；不默认启用 TUI。
+- `templates/config.developer.yaml` + `templates/env.developer.example`：开发者。包含 default 模板内容、GitNexus MCP；不默认启用 TUI。
 - 旧的 `templates/config.custom-provider.yaml`、`templates/env.custom-provider.example`、`templates/env.telegram.example` 作为兼容片段保留。
 
 选择规则：
 
 - 只做聊天、Telegram、基础自动化：用 default 模板。
 - 要在代码仓库里开发、审查影响范围、遵守 GitNexus 规则：用 developer 模板。
-- 所有 secret 只放 `.env`、profile secret store、容器 secret 或运行环境；`config.yaml` 只保留 `${VAR}` 引用。`HERMES_TUI=1` 也放 `.env`，使 `hermes` 默认使用 TUI，避免依赖 shell profile。
+- 所有 secret 只放 `.env`、profile secret store、容器 secret 或运行环境；`config.yaml` 只保留 `${VAR}` 引用。不要把交互式偏好 `HERMES_TUI=1` 写入共享 `$HERMES_HOME/.env`，以免破坏后台 worker；需要 TUI 时显式用 `hermes --tui`。
 - 修改 `config.yaml`、`.env`、MCP 或 context files 后，开启新 session；gateway 场景执行 restart。
 
 ## User-level / External Skills
@@ -211,15 +211,22 @@ model_aliases:
 `.env`：
 
 ```env
-HERMES_TUI=1
 HERMES_MODEL_BASE_URL=https://<provider-host>/v1
 HERMES_MODEL_API_KEY=<redacted>
+```
+
+交互式 TUI：
+
+```bash
+hermes --tui
+# 可选：只在个人交互 shell 中设置 alias，不要写入 Hermes 服务用 .env
+alias h='hermes --tui'
 ```
 
 配置原则：
 
 1. `config.yaml` 保存结构和 `${VAR}` 引用。
-2. `.env`、profile secret store、容器 secret 或运行环境保存 secret；同时保存 `HERMES_TUI=1` 这类 Hermes 专用启动开关。
+2. `.env`、profile secret store、容器 secret 或运行环境保存 secret。共享/服务主机不要默认写 `HERMES_TUI=1`；交互式 TUI 使用 `hermes --tui`。
 3. 自定义 OpenAI-compatible endpoint 使用 `api_mode: chat_completions`。
 4. `custom_providers[].name` 生成 provider slug，例如 `Example Relay` 对应 `custom:example-relay`；包含域名的名称可对应 `custom:sub2api.yuepa8.com` 这类 slug，实际以 `hermes model` / 真实命令为准。
 5. `model.default` / `model.model` 保存当前默认模型；保持一个当前默认模型。
@@ -273,7 +280,7 @@ sudo -iu "$TARGET_USER" git --version
 sudo -iu "$TARGET_USER" hermes --version || true
 sudo -iu "$TARGET_USER" hermes config path || true
 sudo -iu "$TARGET_USER" hermes config env-path || true
-sudo -iu "$TARGET_USER" sh -c 'grep -n "^HERMES_TUI=1$" "$(hermes config env-path)" || true'
+sudo -iu "$TARGET_USER" sh -c 'env_path="$(hermes config env-path)"; if grep -q "^HERMES_TUI=1$" "$env_path" 2>/dev/null; then echo "WARN: HERMES_TUI=1 in $env_path can break Kanban/cron/background workers"; fi'
 sudo -iu "$TARGET_USER" hermes doctor || true
 sudo -iu "$TARGET_USER" hermes config check || true
 sudo -iu "$TARGET_USER" sh -c 'test -d "${HERMES_HOME:-$HOME/.hermes}" && find "${HERMES_HOME:-$HOME/.hermes}" -maxdepth 1 -type f -printf "%f\n" || true'
@@ -303,10 +310,11 @@ sudo -iu "$TARGET_USER" hermes --version
 安装后运行：
 
 ```bash
-sudo -iu "$TARGET_USER" sh -c 'env_path="$(hermes config env-path)"; mkdir -p "$(dirname "$env_path")"; touch "$env_path"; grep -q "^HERMES_TUI=" "$env_path" && sed -i "s/^HERMES_TUI=.*/HERMES_TUI=1/" "$env_path" || printf "\nHERMES_TUI=1\n" >> "$env_path"'
 sudo -iu "$TARGET_USER" hermes doctor
 sudo -iu "$TARGET_USER" hermes config check
 ```
+
+如需交互式 TUI，使用 `hermes --tui`；不要在 gateway/Kanban/cron 主机的 Hermes `.env` 中默认写入 `HERMES_TUI=1`。
 
 ### Configure model
 
@@ -347,7 +355,7 @@ sudo -iu "$TARGET_USER" tail -n 120 ~/.hermes/logs/gateway.log
 ### Delivery checklist
 
 - `hermes --version` 成功。
-- `hermes config env-path` 指向的 `.env` 包含 `HERMES_TUI=1`，裸 `hermes` 默认进入 TUI。
+- 需要交互 UI 时 `hermes --tui` 可启动；服务/worker 环境不含全局 `HERMES_TUI=1`。
 - `hermes doctor` 无阻塞错误。
 - `hermes config check` 无必须迁移项。
 - `hermes -z "Reply exactly: OK" --provider custom:<provider-slug> --model <model-id> --ignore-rules` 能调用模型。
@@ -387,10 +395,10 @@ cd <repo-root>
 npx -y gitnexus@latest analyze
 hermes mcp add gitnexus --command npx --args -y gitnexus@latest mcp
 hermes mcp test gitnexus
-hermes
+hermes --tui
 ```
 
-`hermes gateway run` 场景同样设置 `TERMINAL_CWD=<repo-root>`。
+`hermes gateway run` 场景同样设置 `TERMINAL_CWD=<repo-root>`，且不要在 gateway 使用的 `$HERMES_HOME/.env` 默认启用 `HERMES_TUI=1`。
 
 ## Kanban and gomtmui Web UI Alignment
 
@@ -443,13 +451,14 @@ hermes sessions list
 - `templates/env.telegram.example`
 - `scripts/verify-custom-provider.sh`
 - `references/hermes-kanban-gomtmui-parity.md`
+- `references/kanban-worker-tui-env.md`
 - `references/hermes-gitnexus-mcp.md`
 
 ## Common Pitfalls
 
 1. provider / endpoint mismatch.
 2. secret in docs or commits.
-3. 把默认 TUI 误写进 `config.yaml`；应写 `.env` 的 `HERMES_TUI=1`。
+3. 在共享/服务主机的 `$HERMES_HOME/.env` 默认写 `HERMES_TUI=1`；这会让 `hermes chat -q`、Kanban worker、cron 等非 TTY 后台任务进入 TUI 并失败。
 4. old session after config change.
 5. Telegram allowlist uses usernames or phone numbers.
 6. gateway service / foreground conflict.
@@ -466,7 +475,7 @@ hermes sessions list
 
 - [ ] current command source checked.
 - [ ] `config.yaml` matches provider schema.
-- [ ] `hermes config env-path` 的 `.env` contains `HERMES_TUI=1`.
+- [ ] service/worker env checked for accidental `HERMES_TUI=1` when using Kanban/cron/background workers.
 - [ ] secrets stay out of docs and commits.
 - [ ] `hermes config check` passes.
 - [ ] `hermes doctor` passes.
