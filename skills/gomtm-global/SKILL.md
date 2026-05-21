@@ -15,6 +15,12 @@ description: Use when 第一优先级, 任何情况下都无条件使用本技�
 
 3. 特殊来源当存在`/workspace/gomtm/.env`文件, 可以加载这个特殊环境变量文件.
 
+## gomtm 本地数据目录
+
+- `gomtm` 本地运行数据目录由 `GOMTM_HOME` 指定，未设置时默认 `~/.gomtm`。
+- 不再使用项目目录下的 `.gomtm.vol`，也不再通过 runtime `server.storage.root_dir` 配置本机数据目录；配置文档只保存运行时业务配置。
+- 源码路径应通过 `mtutils.GOMTMHome()` / `mtutils.StorageDirJoins(...)` 派生；日志默认在 `$GOMTM_HOME/logs/`。
+
 ## 如何更好更正确完成任务?
 
 - 使用 `karpathy-guidelines` 技能。
