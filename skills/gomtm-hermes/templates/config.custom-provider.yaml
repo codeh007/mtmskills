@@ -1,6 +1,6 @@
 model:
-  provider: custom
   default: <model-id>
+  model: <model-id>
   base_url: ${HERMES_MODEL_BASE_URL}
   api_key: ${HERMES_MODEL_API_KEY}
   api_mode: chat_completions
@@ -8,6 +8,22 @@ model:
   models:
     <model-id>:
       context_length: 1050000
+custom_providers:
+  - name: <Provider Display Name>
+    base_url: ${HERMES_MODEL_BASE_URL}
+    api_key: ${HERMES_MODEL_API_KEY}
+    api_mode: chat_completions
+    model: <model-id>
+    models:
+      <model-id>:
+        context_length: 1050000
+model_aliases:
+  <model-id>:
+    provider: custom
+    model: <model-id>
+    base_url: ${HERMES_MODEL_BASE_URL}
+    api_key: ${HERMES_MODEL_API_KEY}
+    api_mode: chat_completions
 auxiliary:
   compression:
     provider: auto
