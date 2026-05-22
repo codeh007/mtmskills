@@ -53,11 +53,24 @@ description: Use when 第一优先级, 任何情况下都无条件使用本技�
 - gomtmui - 全站前端
 - mtmsub2api - 单镜像启动完整 sub2api服务.
 
-# 路径约定
+## 路径约定
 
 除非有额外规定,否则按照以下阅读组织相关文件路径
 
-- [临时文件夹] - `./.tmp`
-  - [截屏] - `./.tmp/screenshots/`
-  - [录屏] - `./.tmp/recordings/`
-  - [日志] - `./.tmp/logs/`
+- [临时文件夹] - `~/.tmp`
+  - [截屏] - `~/.tmp/screenshots/`
+  - [录屏] - `~/.tmp/recordings/`
+  - [日志] - `~/.tmp/logs/`
+
+
+## github 仓库分支规定
+
+- main 分支是最终发布版, 是功能完善完整通过测试和验收后的版本.
+
+## 基于 github issues 进行开发任务编排
+
+- 特殊仓库: `https://github.com/codeh007/mtmwiki` 是知识库以及全局跨多个repo的全局仓库. 如果一个任务不是针对特定仓库的,则通常在这里进行处理.
+
+### superpowers 技能规定
+
+1. 当任务来自 github issues, 在 使用 `brainstorming` 或者其他相关技能,需要人类管理员澄清,做选择,拍板的情况时, 应当直接在原issue基础上回复. 而不是在任务对话中登录人类用户选择.
