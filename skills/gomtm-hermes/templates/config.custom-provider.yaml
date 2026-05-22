@@ -1,22 +1,29 @@
+# Replace <context-length> with the real stable provider/model context window.
+# Example: OpenRouter reports openai/gpt-5.5 as 1050000; unknown/unstable endpoints may use a lower tested value.
+
 model:
   default: <model-id>
   model: <model-id>
   base_url: ${HERMES_MODEL_BASE_URL}
   api_key: ${HERMES_MODEL_API_KEY}
   api_mode: chat_completions
-  context_length: 1050000
+  # Set to the real provider/model window; e.g. OpenRouter reports openai/gpt-5.5 as 1050000.
+  context_length: <context-length>
   models:
     <model-id>:
-      context_length: 1050000
+      context_length: <context-length>
+
 custom_providers:
   - name: <Provider Display Name>
     base_url: ${HERMES_MODEL_BASE_URL}
     api_key: ${HERMES_MODEL_API_KEY}
     api_mode: chat_completions
     model: <model-id>
+    context_length: <context-length>
     models:
       <model-id>:
-        context_length: 1050000
+        context_length: <context-length>
+
 model_aliases:
   <model-id>:
     provider: custom
@@ -24,13 +31,19 @@ model_aliases:
     base_url: ${HERMES_MODEL_BASE_URL}
     api_key: ${HERMES_MODEL_API_KEY}
     api_mode: chat_completions
+    context_length: <context-length>
+
+compression:
+  enabled: true
+  threshold: 0.5
+
 auxiliary:
   compression:
-    provider: auto
-    model: ''
-    base_url: ''
-    api_key: ''
-    timeout: 120
+    provider: custom
+    model: <model-id>
+    base_url: ${HERMES_MODEL_BASE_URL}
+    api_key: ${HERMES_MODEL_API_KEY}
+    timeout: 180
     extra_body: {}
   title_generation:
     provider: auto

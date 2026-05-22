@@ -173,7 +173,7 @@ hermes chat --quiet --skills <skill-name> -q '只回复 OK'
 
 兼容片段：`templates/config.custom-provider.yaml`、`templates/env.custom-provider.example`、`templates/env.telegram.example`。
 
-`config.yaml` 推荐形态：
+`config.yaml` 推荐形态。`context_length` 用 endpoint/模型真实稳定窗口，并在所有解析路径保持一致；不要把 Hermes 未知模型 fallback（256K）当成所有模型的最佳值。OpenRouter 当前公开元数据中 `openai/gpt-5.5` / `openai/gpt-5.5-pro` 为 `1050000`，若实际 endpoint 支持该窗口，应配置为 `1050000`：
 
 ```yaml
 model:
@@ -182,10 +182,10 @@ model:
   base_url: ${HERMES_MODEL_BASE_URL}
   api_key: ${HERMES_MODEL_API_KEY}
   api_mode: chat_completions
-  context_length: 1050000
+  context_length: <context-length>
   models:
     <model-id>:
-      context_length: 1050000
+      context_length: <context-length>
 
 custom_providers:
   - name: <Provider Display Name>
@@ -193,9 +193,10 @@ custom_providers:
     api_key: ${HERMES_MODEL_API_KEY}
     api_mode: chat_completions
     model: <model-id>
+    context_length: <context-length>
     models:
       <model-id>:
-        context_length: 1050000
+        context_length: <context-length>
 
 model_aliases:
   <model-id>:
@@ -204,6 +205,20 @@ model_aliases:
     base_url: ${HERMES_MODEL_BASE_URL}
     api_key: ${HERMES_MODEL_API_KEY}
     api_mode: chat_completions
+    context_length: <context-length>
+
+compression:
+  enabled: true
+  threshold: 0.5
+
+auxiliary:
+  compression:
+    provider: custom
+    model: <model-id>
+    base_url: ${HERMES_MODEL_BASE_URL}
+    api_key: ${HERMES_MODEL_API_KEY}
+    timeout: 180
+    extra_body: {}
 ```
 
 `model_aliases` 用于让 `hermes -z ... --model <model-id>` 这类未显式传 `--provider` 的一次性命令仍保持在自定义 endpoint，避免模型名被静态目录误判到 OpenAI Codex 或 OpenRouter。
@@ -228,12 +243,15 @@ alias h='hermes --tui'
 1. `config.yaml` 保存结构和 `${VAR}` 引用。
 2. `.env`、profile secret store、容器 secret 或运行环境保存 secret。共享/服务主机不要默认写 `HERMES_TUI=1`；交互式 TUI 使用 `hermes --tui`。
 3. 自定义 OpenAI-compatible endpoint 使用 `api_mode: chat_completions`。
-4. `custom_providers[].name` 生成 provider slug，例如 `Example Relay` 对应 `custom:example-relay`；包含域名的名称可对应 `custom:sub2api.yuepa8.com` 这类 slug，实际以 `hermes model` / 真实命令为准。
+4. `custom_providers[].name` 生成 provider slug，例如 `Example Relay` 对应 `custom:example-relay`；实际 slug 以 `hermes model` / 真实命令为准。
 5. `model.default` / `model.model` 保存当前默认模型；保持一个当前默认模型。
-6. `context_length` 根据 provider 真实支持窗口设置。
-7. 避免把 `model.provider` 写成 `openrouter`；自定义 endpoint 验证时显式使用 `--provider custom:<slug>` 或 bare custom endpoint 配置。
-8. 对第三方中转模型补 `model_aliases`，确保 `--model <model-id>` 不带 `--provider` 时仍命中自定义 endpoint。
-9. 修改配置后启动新会话；gateway 场景执行 restart。
+6. `context_length` 必须按真实 provider/model 窗口填写，并在 `model`、`model.models`、`custom_providers[].context_length`、`custom_providers[].models`、`model_aliases` 中一致；不要只改一处。
+7. `compression.threshold` 按 `context_length × threshold` 触发；`context_length` 写小会过早压缩，写大于实际窗口会过晚压缩并增加空回复/上下文错误风险。
+8. 第三方中转 endpoint 先查供应商 `/models`/公开元数据/实测稳定窗口；能确认百万级窗口（如 OpenRouter `openai/gpt-5.5` 为 `1050000`）就配置真实值，未知时才临时保守下调。
+9. 显式配置 `auxiliary.compression`，避免 auto 路径选择到 context 元数据不一致的模型。
+10. 避免把 `model.provider` 写成 `openrouter`；自定义 endpoint 验证时显式使用 `--provider custom:<slug>` 或 bare custom endpoint 配置。
+11. 对第三方中转模型补 `model_aliases`，确保 `--model <model-id>` 不带 `--provider` 时仍命中自定义 endpoint。
+12. 修改配置后启动新会话；gateway 场景执行 restart。
 
 ### Required checks
 
@@ -416,29 +434,20 @@ hermes --tui
 
 ## Empty Response and Stuck Session Debugging
 
-当长任务停止、后续“继续”得到空回复时，先看日志和 session：
+长任务停止或“继续”空回复时，按 `references/hermes-long-context-empty-response.md` 排查。最短命令：
 
 ```bash
 grep -Ei "pending tool result|Empty response|No fallback available|AuthenticationError|context|Provider:" ~/.hermes/logs/errors.log | tail -80
-hermes sessions list
+HERMES_TUI=0 hermes chat --quiet -q '只输出 OK'
 ```
 
-判断点：
+关键判断：
 
-1. `pending tool result` 表示上一轮工具结果未被模型消化。
-2. `Empty response (no content or reasoning)` 表示模型返回空内容。
-3. `No fallback available` 表示没有可用回退 provider。
-4. `AuthenticationError`、endpoint 指向错误或 provider 与 endpoint 不一致会让新回合持续失败。
-5. `Provider: openrouter` + 自定义模型名通常表示 provider override 或配置落回 OpenRouter。
-6. 旧 session 已出现空回复链时，修复配置后开新 session 验证。
-
-修复顺序：
-
-1. 检查 `config.yaml` 的 `model.default`、`model.model`、`model.base_url`、`model.api_key`、`model.api_mode`、`custom_providers`、fallback 配置。
-2. 检查 `.env` 中引用变量是否存在。
-3. 运行 `hermes config check`、`hermes doctor`。
-4. 运行 named custom 与 bare custom 烟雾测试。
-5. gateway 场景执行 `hermes gateway restart` 并开新会话。
+1. `Empty response (no content or reasoning)` + `No fallback available`：模型在 tool result 后返回空内容，且无回退 provider。
+2. 高 `input_tokens` / 大量 tool calls：优先收紧 `context_length`，让压缩提前触发。
+3. 自定义 OpenAI-compatible endpoint：`context_length` 要在 `model`、`custom_providers`、`model_aliases` 中全部一致。
+4. `Provider: openrouter` + 自定义模型名：provider override 或 alias 缺失。
+5. 修复配置后开新 session；gateway 场景必须 restart 或重新运行 gateway。
 
 ## Support Files
 
@@ -453,6 +462,7 @@ hermes sessions list
 - `references/hermes-kanban-gomtmui-parity.md`
 - `references/kanban-worker-tui-env.md`
 - `references/hermes-gitnexus-mcp.md`
+- `references/hermes-long-context-empty-response.md`
 
 ## Common Pitfalls
 
@@ -470,11 +480,12 @@ hermes sessions list
 12. `skills.external_dirs` written as a string.
 13. GitNexus MCP without repo `AGENTS.md` / `CLAUDE.md`.
 14. `--ignore-rules` used to test GitNexus injection.
+15. custom endpoint uses optimistic `context_length` in only one config path; compression triggers too late and long tool-heavy sessions return empty content.
 
 ## Verification Checklist
 
 - [ ] current command source checked.
-- [ ] `config.yaml` matches provider schema.
+- [ ] `config.yaml` matches provider schema and context_length is consistent across model/custom provider/alias paths.
 - [ ] service/worker env checked for accidental `HERMES_TUI=1` when using Kanban/cron/background workers.
 - [ ] secrets stay out of docs and commits.
 - [ ] `hermes config check` passes.

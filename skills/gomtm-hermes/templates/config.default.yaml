@@ -1,5 +1,8 @@
-# Copy this to ~/.hermes/config.yaml. Keep interactive startup preferences out of
-# service/shared env files; use `hermes --tui` explicitly for TUI sessions.
+# Copy this to ~/.hermes/config.yaml. Replace <model-id> and provider name.
+# Keep secrets in ~/.hermes/.env or service secrets. Do not set HERMES_TUI=1 in service/shared env.
+
+# Replace <context-length> with the real stable provider/model context window.
+# Example: OpenRouter reports openai/gpt-5.5 as 1050000; unknown/unstable endpoints may use a lower tested value.
 
 model:
   default: <model-id>
@@ -7,10 +10,11 @@ model:
   base_url: ${HERMES_MODEL_BASE_URL}
   api_key: ${HERMES_MODEL_API_KEY}
   api_mode: chat_completions
-  context_length: 1050000
+  # Set to the real provider/model window; e.g. OpenRouter reports openai/gpt-5.5 as 1050000.
+  context_length: <context-length>
   models:
     <model-id>:
-      context_length: 1050000
+      context_length: <context-length>
 
 custom_providers:
   - name: <Provider Display Name>
@@ -18,9 +22,10 @@ custom_providers:
     api_key: ${HERMES_MODEL_API_KEY}
     api_mode: chat_completions
     model: <model-id>
+    context_length: <context-length>
     models:
       <model-id>:
-        context_length: 1050000
+        context_length: <context-length>
 
 model_aliases:
   <model-id>:
@@ -29,6 +34,11 @@ model_aliases:
     base_url: ${HERMES_MODEL_BASE_URL}
     api_key: ${HERMES_MODEL_API_KEY}
     api_mode: chat_completions
+    context_length: <context-length>
+
+compression:
+  enabled: true
+  threshold: 0.5
 
 skills:
   external_dirs:
@@ -41,11 +51,11 @@ agent:
 
 auxiliary:
   compression:
-    provider: auto
-    model: ''
-    base_url: ''
-    api_key: ''
-    timeout: 120
+    provider: custom
+    model: <model-id>
+    base_url: ${HERMES_MODEL_BASE_URL}
+    api_key: ${HERMES_MODEL_API_KEY}
+    timeout: 180
     extra_body: {}
   title_generation:
     provider: auto
