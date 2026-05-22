@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-BASE_URL="${HERMES_MODEL_BASE_URL:-}"
-API_KEY="${HERMES_MODEL_API_KEY:-}"
+BASE_URL="${OPENAI_BASE_URL:-}"
+API_KEY="${OPENAI_API_KEY:-}"
 MODEL="${HERMES_MODEL:-${1:-}}"
 
 if [[ -z "$BASE_URL" ]]; then
-  echo "HERMES_MODEL_BASE_URL is required" >&2
+  echo "OPENAI_BASE_URL is required" >&2
   exit 2
 fi
 if [[ -z "$API_KEY" ]]; then
-  echo "HERMES_MODEL_API_KEY is required" >&2
+  echo "OPENAI_API_KEY is required" >&2
   exit 2
 fi
 if [[ -z "$MODEL" ]]; then

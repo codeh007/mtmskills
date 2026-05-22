@@ -181,8 +181,8 @@ hermes chat --quiet --skills <skill-name> -q '只回复 OK'
 model:
   default: <model-id>
   model: <model-id>
-  base_url: ${HERMES_MODEL_BASE_URL}
-  api_key: ${HERMES_MODEL_API_KEY}
+  base_url: ${OPENAI_BASE_URL}
+  api_key: ${OPENAI_API_KEY}
   api_mode: chat_completions
   context_length: <context-length>
   models:
@@ -191,8 +191,8 @@ model:
 
 custom_providers:
   - name: <Provider Display Name>
-    base_url: ${HERMES_MODEL_BASE_URL}
-    api_key: ${HERMES_MODEL_API_KEY}
+    base_url: ${OPENAI_BASE_URL}
+    api_key: ${OPENAI_API_KEY}
     api_mode: chat_completions
     model: <model-id>
     context_length: <context-length>
@@ -204,8 +204,8 @@ model_aliases:
   <model-id>:
     provider: custom
     model: <model-id>
-    base_url: ${HERMES_MODEL_BASE_URL}
-    api_key: ${HERMES_MODEL_API_KEY}
+    base_url: ${OPENAI_BASE_URL}
+    api_key: ${OPENAI_API_KEY}
     api_mode: chat_completions
     context_length: <context-length>
 
@@ -217,8 +217,8 @@ auxiliary:
   compression:
     provider: custom
     model: <model-id>
-    base_url: ${HERMES_MODEL_BASE_URL}
-    api_key: ${HERMES_MODEL_API_KEY}
+    base_url: ${OPENAI_BASE_URL}
+    api_key: ${OPENAI_API_KEY}
     timeout: 180
     extra_body: {}
 ```
@@ -228,8 +228,8 @@ auxiliary:
 `.env`：
 
 ```env
-HERMES_MODEL_BASE_URL=https://<provider-host>/v1
-HERMES_MODEL_API_KEY=<redacted>
+OPENAI_BASE_URL=https://<provider-host>/v1
+OPENAI_API_KEY=<redacted>
 ```
 
 交互式 TUI：
