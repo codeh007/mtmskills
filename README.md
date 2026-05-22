@@ -6,25 +6,26 @@
 
 不要在本地开发场景使用 `npx skills add . --all --global --yes` 复制安装；复制会让 `~/.hermes/skills`、`~/.agents/skills` 与源码分叉。
 
-推荐使用 `gomtm skills` 创建 symlink：
+先获取或更新源码，然后直接使用已发布的 `gomtm` 命令创建目录级 symlink：
 
 ```bash
+# 首次获取源码；也可以替换为你自己的 checkout 路径
+git clone https://github.com/codeh007/mtmskills.git ~/src/mtmskills
+cd ~/src/mtmskills
+
 # 预览
-bash /workspace/mtmskills/scripts/install-local-symlinks.sh --dry-run
+gomtm skills link ./skills \
+  --agent hermes-agent,codex,claude-code \
+  --preserve-path \
+  --dry-run
 
 # 应用到 Hermes/Codex/Claude 三端
-bash /workspace/mtmskills/scripts/install-local-symlinks.sh --yes
-```
-
-等价命令：
-
-```bash
-(cd /workspace/gomtm && go run ./cmd skills link /workspace/mtmskills/skills \
+gomtm skills link ./skills \
   --agent hermes-agent,codex,claude-code \
-  --hermes-mode symlink \
-  --preserve-path \
-  --dry-run)
+  --preserve-path
 ```
+
+已有 checkout 时只需要在仓库根目录执行 `gomtm skills link ./skills ...`；不要使用 `go run ./cmd`，也不要假定机器上存在 `/workspace/gomtm` 或 `/workspace/mtmskills`。
 
 ## 远程/一次性安装
 
@@ -43,7 +44,7 @@ skills/
     <group>/<skill-name>/SKILL.md
 ```
 
-`SKILL.md` frontmatter `name` 仍是技能名；安装路径由 `gomtm skills --preserve-path` 保留 namespace。
+`SKILL.md` frontmatter `name` 仍是技能名；安装路径由 `gomtm skills --preserve-path` 保留目录级 namespace。Hermes Agent 也读取 `~/.agents/skills`，因此不需要额外改写 Hermes 配置。
 
 ## 维护命令
 
