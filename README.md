@@ -10,22 +10,16 @@
 
 ```bash
 # 首次获取源码；也可以替换为你自己的 checkout 路径
-git clone https://github.com/codeh007/mtmskills.git ~/src/mtmskills
-cd ~/src/mtmskills
+git clone https://github.com/codeh007/mtmskills.git 
 
 # 预览
-gomtm skills link ./skills \
-  --agent hermes-agent,codex,claude-code \
-  --preserve-path \
-  --dry-run
+gomtm skills link . --dry-run
 
 # 应用到 Hermes/Codex/Claude 三端
-gomtm skills link ./skills \
-  --agent hermes-agent,codex,claude-code \
-  --preserve-path
+gomtm skills link .
 ```
 
-已有 checkout 时只需要在仓库根目录执行 `gomtm skills link ./skills ...`；不要使用 `go run ./cmd`，也不要假定机器上存在 `/workspace/gomtm` 或 `/workspace/mtmskills`。
+已有 checkout 时只需要在仓库根目录执行 `gomtm skills link .`；命令会按约定查找 `skills/` 目录并发现其中符合规范的 skill。不要使用 `go run ./cmd`，也不要假定机器上存在 `/workspace/gomtm` 或 `/workspace/mtmskills`。
 
 ## 远程/一次性安装
 
@@ -44,14 +38,7 @@ skills/
     <group>/<skill-name>/SKILL.md
 ```
 
-`SKILL.md` frontmatter `name` 仍是技能名；安装路径由 `gomtm skills --preserve-path` 保留目录级 namespace。Hermes Agent 也读取 `~/.agents/skills`，因此不需要额外改写 Hermes 配置。
-
-## 维护命令
-
-```bash
-python3 scripts/skill-layout-report.py --strict
-python3 scripts/skill-layout-report.py --json
-```
+`SKILL.md` frontmatter `name` 仍是技能名；`gomtm skills link .` 默认保留目录级 namespace。Hermes Agent 也读取 `~/.agents/skills`，因此不需要额外改写 Hermes 配置。
 
 ## 贡献
 
