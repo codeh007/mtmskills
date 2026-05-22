@@ -34,11 +34,6 @@ skills/
 - 技能应自包含；不要依赖私有路径、密钥或本机环境。
 - 只有确实需要时才添加 `scripts/`、`references/`、`assets/`。
 
-提交前确认技能可被发现：
-
-```bash
-npx -y skills add . --list
-```
 
 # 收集的 技能仓库
 

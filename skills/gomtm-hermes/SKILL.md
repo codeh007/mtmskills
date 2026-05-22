@@ -25,6 +25,7 @@ Hermes 行为归官方 `hermes-agent` 包、`HERMES_HOME`、`config.yaml`、`.en
 - 用户要求在客户 Linux VPS、Android/Termux、容器或受控运行环境中交付 Hermes Agent。
 - 用户要求诊断 Hermes 长任务停止、空回复、provider 鉴权、上下文压缩、gateway、Telegram 或 dashboard plugin 问题。
 - 用户要求实现 gomtmui Hermes 最新 Web UI 对齐，尤其涉及 Kanban 和 dashboard plugin。
+- 用户要求了解、配置或排障 Hermes `/goal`、`/subgoal`、goal judge 或自动 continuation 行为。
 
 ## Official Sources First
 
@@ -37,6 +38,7 @@ Hermes 行为归官方 `hermes-agent` 包、`HERMES_HOME`、`config.yaml`、`.en
 - Messaging gateway: `https://hermes-agent.nousresearch.com/docs/user-guide/messaging/`
 - Telegram: `https://hermes-agent.nousresearch.com/docs/user-guide/messaging/telegram`
 - Kanban: `https://hermes-agent.nousresearch.com/docs/zh-Hans/user-guide/features/kanban`
+- Persistent Goals: `https://hermes-agent.nousresearch.com/docs/user-guide/features/goals`
 - Termux: `https://hermes-agent.nousresearch.com/docs/getting-started/termux`
 - Release notes: `https://github.com/NousResearch/hermes-agent/releases`
 - 本机官方源码：优先使用 `$HERMES_AGENT_SOURCE`；未设置时按需定位当前官方 checkout、包安装目录，或用 `python -c "import hermes_cli, pathlib; print(pathlib.Path(hermes_cli.__file__).parents[1])"` 查找。
@@ -52,7 +54,7 @@ Hermes 行为归官方 `hermes-agent` 包、`HERMES_HOME`、`config.yaml`、`.en
 5. `model:` 可以保存当前默认 endpoint/model；默认模型的 `provider` 不应误写成 `openrouter`，否则会回到 OpenRouter 并触发 401。
 6. `config.yaml` 保存结构和 `${VAR}` 引用；`.env` 或运行环境保存 secret。
 7. 官方 TUI 是交互式入口；需要 TUI 时显式运行 `hermes --tui`。不要在共享/服务主机的 `$HERMES_HOME/.env` 默认写 `HERMES_TUI=1`，否则 `hermes chat -q`、Kanban worker、cron 等非 TTY 后台任务会被强制进 TUI 并失败；细节见 `references/kanban-worker-tui-env.md`。
-8. `hermes gateway run` 启动 messaging gateway、cron scheduler 与 Kanban dispatcher；Web UI 入口是 `hermes dashboard`。
+8. `hermes gateway run` 启动 messaging gateway、cron scheduler 与 Kanban dispatcher；Web UI 入口是 `hermes dashboard`。Kanban 不依赖 dashboard 运行，运行边界见 `references/hermes-kanban-runtime-boundary.md`。
 9. 新会话或 gateway restart 才会稳定读取配置变化。
 
 ## gomtm Integration Boundaries
@@ -420,17 +422,29 @@ hermes --tui
 
 ## Kanban and gomtmui Web UI Alignment
 
-当需求涉及 gomtmui Hermes 最新 Web UI、Kanban、dashboard plugin、gateway dispatcher 或 selected server 安全代理时，阅读 `references/hermes-kanban-gomtmui-parity.md`。
+当需求涉及 gomtmui Hermes 最新 Web UI、Kanban、dashboard plugin、gateway dispatcher 或 selected server 安全代理时，阅读 `references/hermes-kanban-gomtmui-parity.md`；当判断 Kanban 是否必须启动 dashboard/gateway 时，阅读 `references/hermes-kanban-runtime-boundary.md`。
 
 关键规则：
 
 1. `hermes gateway run` 启动 messaging gateway、cron scheduler 和 Kanban dispatcher。
-2. Web UI 入口是 `hermes dashboard`。
+2. Web UI 入口是 `hermes dashboard`；Kanban CLI、slash command 和 worker tools 不以 dashboard 为前置条件。
 3. Kanban 是官方 bundled dashboard plugin，tab path 是 `/kanban`。
 4. mtmai 暴露受保护代理：`/api/hermes/plugins/kanban/*` 到官方 `/api/plugins/kanban/*`。
 5. gomtmui 优先加载官方 Kanban plugin bundle；本地页面只承担 host adaptation。
 6. Kanban writes 使用 selected server 对应 `X-Hermes-Session-Token`。
 7. Kanban events WebSocket 使用 selected server token 和 origin 边界。
+
+## Persistent Goals (`/goal`)
+
+当需求涉及 Hermes `/goal`、`/subgoal`、persistent goals、Ralph loop、goal judge 或 Telegram/gateway 自动 continuation 时，阅读 `references/hermes-persistent-goals.md`。
+
+关键规则：
+
+1. `/goal <text>` 在当前 session 保存 standing goal，并立即把目标文本作为普通 user turn 排队。
+2. 每轮结束后 `GoalManager` 调用 `auxiliary.goal_judge` 判断 done/continue；未完成时继续排入普通 user-role continuation prompt。
+3. goal 状态保存在 `SessionDB.state_meta` 的 `goal:<session_id>`，可随 `/resume` 恢复。
+4. continuation 不修改 system prompt、不切换 toolset；CLI 走 `_pending_input`，gateway/Telegram 走 adapter FIFO，真实用户消息优先。
+5. `/subgoal` 用于追加验收标准；judge 失败默认 continue，连续坏 JSON 或超过 `goals.max_turns` 会自动 pause。
 
 ## Empty Response and Stuck Session Debugging
 
@@ -459,10 +473,12 @@ HERMES_TUI=0 hermes chat --quiet -q '只输出 OK'
 - `templates/env.custom-provider.example`
 - `templates/env.telegram.example`
 - `scripts/verify-custom-provider.sh`
+- `references/hermes-kanban-runtime-boundary.md`
 - `references/hermes-kanban-gomtmui-parity.md`
 - `references/kanban-worker-tui-env.md`
 - `references/hermes-gitnexus-mcp.md`
 - `references/hermes-long-context-empty-response.md`
+- `references/hermes-persistent-goals.md`
 
 ## Common Pitfalls
 

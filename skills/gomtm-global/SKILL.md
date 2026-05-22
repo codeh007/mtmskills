@@ -52,3 +52,12 @@ description: Use when 第一优先级, 任何情况下都无条件使用本技�
 
 - gomtmui - 全站前端
 - mtmsub2api - 单镜像启动完整 sub2api服务.
+
+# 路径约定
+
+除非有额外规定,否则按照以下阅读组织相关文件路径
+
+- [临时文件夹] - `./.tmp`
+  - [截屏] - `./.tmp/screenshots/`
+  - [录屏] - `./.tmp/recordings/`
+  - [日志] - `./.tmp/logs/`
