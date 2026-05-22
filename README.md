@@ -1,30 +1,56 @@
 # mtmskills
 
-## 安装
+`mtmskills` 是私有 agent skills 源码仓库。源码目录是本地开发时的唯一真相源；不要把正在维护的 skills 复制安装成长期使用副本。
+
+## 本地开发安装（推荐）
+
+不要在本地开发场景使用 `npx skills add . --all --global --yes` 复制安装；复制会让 `~/.hermes/skills`、`~/.agents/skills` 与源码分叉。
+
+推荐使用 `gomtm skills` 创建 symlink：
 
 ```bash
-# 全局安装(覆盖已有更新)
-npx skills add https://github.com/codeh007/mtmskills --all --global --yes
-# 从本地安装
-npx skills add . --all --global --yes
+# 预览
+bash /workspace/mtmskills/scripts/install-local-symlinks.sh --dry-run
+
+# 应用到 Hermes/Codex/Claude 三端
+bash /workspace/mtmskills/scripts/install-local-symlinks.sh --yes
 ```
 
-安装指定技能到 Codex：
+等价命令：
 
 ```bash
-npx skills add https://github.com/codeh007/mtmskills --skill demo-smoke-test -a codex
+(cd /workspace/gomtm && go run ./cmd skills link /workspace/mtmskills/skills \
+  --agent hermes-agent,codex,claude-code \
+  --hermes-mode symlink \
+  --preserve-path \
+  --dry-run)
+```
+
+## 远程/一次性安装
+
+远程机器或只读环境可以继续使用 `npx skills` 做复制式安装，但这不应作为本机源码开发工作流：
+
+```bash
+npx skills add https://github.com/codeh007/mtmskills --all --global --yes
 ```
 
 ## 目录结构
 
 ```text
 skills/
-  <skill-name>/
-    SKILL.md
-    agents/openai.yaml  # 可选
+  mtmskills/
+    <skill-name>/SKILL.md
+    <group>/<skill-name>/SKILL.md
 ```
 
-`skills/<skill-name>` 必须与 `SKILL.md` frontmatter 中的 `name` 一致。
+`SKILL.md` frontmatter `name` 仍是技能名；安装路径由 `gomtm skills --preserve-path` 保留 namespace。
+
+## 维护命令
+
+```bash
+python3 scripts/skill-layout-report.py --strict
+python3 scripts/skill-layout-report.py --json
+```
 
 ## 贡献
 
@@ -34,8 +60,7 @@ skills/
 - 技能应自包含；不要依赖私有路径、密钥或本机环境。
 - 只有确实需要时才添加 `scripts/`、`references/`、`assets/`。
 
-
-# 收集的 技能仓库
+# 收集的技能仓库
 
 - https://github.com/anthropics/skills
 - https://github.com/mattpocock/skills
