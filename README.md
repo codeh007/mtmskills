@@ -38,7 +38,7 @@ skills/
     <group>/<skill-name>/SKILL.md
 ```
 
-`SKILL.md` frontmatter `name` 仍是技能名；`gomtm skills link .` 默认保留目录级 namespace。Hermes Agent 也读取 `~/.agents/skills`，因此不需要额外改写 Hermes 配置。
+`SKILL.md` frontmatter `name` 仍是技能名；`gomtm skills link .` 默认保留目录级 namespace，并分别链接到 Codex、Hermes Agent、Claude Code 的用户级技能目录。
 
 ## 贡献
 
