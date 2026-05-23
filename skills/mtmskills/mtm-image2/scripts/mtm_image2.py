@@ -115,48 +115,23 @@ def normalize_base_url(value: str | None, codex_profile: str | None = None) -> s
     return base if base.endswith("/v1") else f"{base}/v1"
 
 
-def find_secret_value(data: object) -> str | None:
-    if isinstance(data, dict):
-        for name in ("OPENAI_API_KEY", "api_key", "apiKey"):
-            value = data.get(name)
-            if isinstance(value, str) and value:
-                return value
-        for value in data.values():
-            found = find_secret_value(value)
-            if found:
-                return found
-    elif isinstance(data, list):
-        for value in data:
-            found = find_secret_value(value)
-            if found:
-                return found
-    return None
-
-
-def read_codex_key() -> str | None:
-    path = codex_home() / "auth.json"
-    if not path.is_file():
-        return None
-    try:
-        data = json.loads(path.read_text(encoding="utf-8"))
-    except Exception:
-        return None
-    return find_secret_value(data)
-
-
-def read_provider_env_key(codex_profile: str | None = None) -> str | None:
+def read_provider_env_key(codex_profile: str | None = None) -> tuple[str | None, str | None]:
     provider = get_active_provider(effective_codex_config(codex_profile))
     env_key = provider.get("env_key")
     if isinstance(env_key, str) and env_key:
-        return os.environ.get(env_key)
+        return os.environ.get(env_key), env_key
     token = provider.get("experimental_bearer_token")
-    return str(token) if token else None
+    return (str(token), "experimental_bearer_token") if token else (None, None)
 
 
 def get_api_key(cli_key: str | None, codex_profile: str | None = None) -> str:
-    key = cli_key or read_provider_env_key(codex_profile) or os.environ.get("OPENAI_API_KEY") or read_codex_key()
+    provider_key, provider_source = read_provider_env_key(codex_profile)
+    key = cli_key or os.environ.get("OPENAI_API_KEY") or provider_key
     if not key:
-        raise SystemExit("Missing API key. Set OPENAI_API_KEY or configure ~/.codex/auth.json.")
+        names = ["OPENAI_API_KEY"]
+        if provider_source and provider_source != "experimental_bearer_token":
+            names.append(provider_source)
+        raise SystemExit(f"Missing API key. Set one of: {', '.join(names)}.")
     return key
 
 

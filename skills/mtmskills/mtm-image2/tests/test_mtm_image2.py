@@ -38,7 +38,7 @@ env_key = "RELAY_API_KEY"
             with patch.dict(os.environ, {"CODEX_HOME": str(codex_home)}, clear=True):
                 self.assertEqual(mtm_image2.normalize_base_url(None), "https://relay.example.com/v1")
 
-    def test_get_api_key_uses_provider_env_key_before_openai_api_key(self) -> None:
+    def test_get_api_key_uses_openai_api_key_before_provider_env_key(self) -> None:
         config = """
 model_provider = "relay"
 
@@ -55,6 +55,26 @@ env_key = "RELAY_API_KEY"
                 "CODEX_HOME": str(codex_home),
                 "RELAY_API_KEY": "relay-key",
                 "OPENAI_API_KEY": "openai-key",
+            }
+            with patch.dict(os.environ, env, clear=True):
+                self.assertEqual(mtm_image2.get_api_key(None), "openai-key")
+
+    def test_get_api_key_falls_back_to_provider_env_key(self) -> None:
+        config = """
+model_provider = "relay"
+
+[model_providers.relay]
+base_url = "https://relay.example.com/v1"
+env_key = "RELAY_API_KEY"
+"""
+        with tempfile.TemporaryDirectory() as tmp:
+            codex_home = Path(tmp) / ".codex"
+            codex_home.mkdir()
+            (codex_home / "config.toml").write_text(config, encoding="utf-8")
+
+            env = {
+                "CODEX_HOME": str(codex_home),
+                "RELAY_API_KEY": "relay-key",
             }
             with patch.dict(os.environ, env, clear=True):
                 self.assertEqual(mtm_image2.get_api_key(None), "relay-key")

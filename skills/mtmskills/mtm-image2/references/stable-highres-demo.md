@@ -12,14 +12,14 @@ python scripts/mtm_image2.py --prompt "A photorealistic product hero image, no t
 
 ## 必要环境
 
-至少提供一种认证来源：
+至少提供一种认证来源。Codex 已在启动时把用户级环境注入当前 agent 时，可直接运行脚本，不需要在命令前手动 `source`：
 
-```bash
-export OPENAI_API_KEY="..."
-export OPENAI_BASE_URL="https://api.openai.com/v1"
+```text
+OPENAI_API_KEY=...
+OPENAI_BASE_URL=https://api.openai.com/v1
 ```
 
-兼容网关可把 `OPENAI_BASE_URL` 指向自己的 `/v1` 地址。脚本也会尝试读取 Codex 的 `~/.codex/config.toml` 和 `~/.codex/auth.json`。
+兼容网关可把 `OPENAI_BASE_URL` 或 `OPENAI_API_BASE` 指向自己的 `/v1` 地址。脚本也会读取 Codex 的 `~/.codex/config.toml` 以复用 provider base URL、headers 和 query params；密钥来自当前进程环境。
 
 不要把 key 写入技能目录、仓库、issue 或报告。
 
