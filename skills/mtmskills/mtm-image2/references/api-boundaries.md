@@ -30,6 +30,7 @@ OpenAI-compatible 网关必须支持图片端点，而不只是 chat completions
 - `model=gpt-image-2`
 - 返回 `data[0].b64_json`，或返回脚本可下载的图片 URL
 - streaming 请求返回 SSE，并包含可解码的 partial 或 final image base64 事件
+- 如果 Codex provider 配置了静态 headers、环境变量 headers 或 query params，图片端点也能接受这些附加参数。
 
 如果网关只支持 `/v1/chat/completions` 或 `/v1/responses`，本技能仍可写 prompt，但不能保证真实 `gpt-image-2` 出图。
 

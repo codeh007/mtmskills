@@ -16,7 +16,7 @@
 - Python 3 标准环境。
 - 可访问 OpenAI Images API 或兼容的图片端点。
 - `OPENAI_API_KEY`，或用户的 Codex/OpenAI-compatible 配置中可读取的 key。
-- `OPENAI_BASE_URL` 可选；未设置时优先读取 Codex provider `base_url`，再默认 `https://api.openai.com/v1`。
+- `OPENAI_BASE_URL` 可选；未设置时优先读取 Codex provider `base_url` 或 `openai_base_url`，再默认 `https://api.openai.com/v1`。
 
 ## Codex 配置
 
@@ -26,7 +26,13 @@
 - macOS/Linux: `~/.codex/config.toml`、`~/.codex/auth.json`
 - Shell 环境变量：`OPENAI_API_KEY`、`OPENAI_BASE_URL`
 
-若用户已经配置 OpenAI-compatible provider，复用其 base URL 与 key；不要在技能文档或脚本中写死某个私有网关。
+若用户已经配置 OpenAI-compatible provider，复用其 base URL、`env_key`、静态 headers、环境变量 headers 和 query params；不要在技能文档或脚本中写死某个私有网关。设置了 `CODEX_HOME` 时，脚本从该目录读取 `config.toml` 和 `auth.json`。
+
+Codex provider/profile 相关配置应放在用户级 config；项目级 `.codex/config.toml` 不适合保存 provider、auth、profile 或 telemetry 路由键。需要显式选择 profile 时：
+
+```text
+python scripts/mtm_image2.py --codex-profile <profile-name> --prompt "A product photo, no text."
+```
 
 只确认 key 是否存在，不打印 key 值。
 
@@ -54,13 +60,28 @@ Use gpt-image-2, not local drawing code. Save the final prompt and generated fil
 
 OpenAI-compatible provider 也应遵循同样规则。
 
+## Python 演示
+
+跨平台演示优先直接运行 Python，避免依赖 Bash：
+
+```text
+python scripts/mtm_image2.py --prompt "A clean product hero image on white background, no text." --size 1024x1024 --quality medium
+```
+
+高清或公网网关可能超时时，优先 streaming：
+
+```text
+python scripts/mtm_image2.py --prompt "A photorealistic product hero image, no text." --size 2048x2048 --quality high --format jpeg --stream --partial-images 2
+```
+
 ## 环境变量
 
 优先级：
 
 1. Explicit command flags.
-2. `OPENAI_API_KEY`.
-3. `~/.codex/auth.json` 中的 OpenAI-compatible key 字段。
+2. Codex provider `env_key` 指向的环境变量。
+3. `OPENAI_API_KEY`.
+4. `~/.codex/auth.json` 中的 OpenAI-compatible key 字段。
 
 Optional:
 

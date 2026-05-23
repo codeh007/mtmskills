@@ -4,11 +4,11 @@
 
 长耗时或高清图片优先使用 Image API 的 streaming 路径：
 
-```bash
-scripts/demo_stream_highres.sh
+```text
+python scripts/mtm_image2.py --prompt "A photorealistic product hero image, no text." --size 2048x2048 --quality high --format jpeg --stream --partial-images 2
 ```
 
-该脚本调用 `scripts/mtm_image2.py --stream --partial-images 2`，会保存 partial 图片和最终图片。公网代理、隧道、负载均衡器或平台网关存在空闲超时时，streaming 能持续返回 SSE 字节，比 `stream=false` 的长时间同步等待更稳定。
+该命令会保存 partial 图片和最终图片。公网代理、隧道、负载均衡器或平台网关存在空闲超时时，streaming 能持续返回 SSE 字节，比 `stream=false` 的长时间同步等待更稳定。
 
 ## 必要环境
 
@@ -23,21 +23,19 @@ export OPENAI_BASE_URL="https://api.openai.com/v1"
 
 不要把 key 写入技能目录、仓库、issue 或报告。
 
-## 演示脚本
+## 演示命令
 
-| 场景 | 脚本 | 默认设置 |
+| 场景 | 命令 | 默认设置 |
 | --- | --- | --- |
-| 高清稳定路径 | `scripts/demo_stream_highres.sh` | `2048x2048`、`quality=high`、`format=jpeg`、`stream=true`、`partial_images=2` |
-| 同步基线对照 | `scripts/demo_sync_baseline.sh` | `1024x1024`、`quality=medium`、`format=png`、`stream=false` |
+| 高清稳定路径 | `python scripts/mtm_image2.py --stream --partial-images 2 ...` | `2048x2048`、`quality=high`、`format=jpeg`、`stream=true`、`partial_images=2` |
+| 同步基线对照 | `python scripts/mtm_image2.py ...` | `1024x1024`、`quality=medium`、`format=png`、`stream=false` |
 
-可用环境变量覆盖演示参数：
+Linux/macOS 环境仍可使用 `scripts/demo_stream_highres.sh` 和 `scripts/demo_sync_baseline.sh` 便捷包装；Windows 或跨平台说明优先写 Python 命令。
 
-```bash
-MTM_IMAGE2_SIZE=1536x1024 \
-MTM_IMAGE2_QUALITY=high \
-MTM_IMAGE2_FORMAT=jpeg \
-MTM_IMAGE2_PARTIAL_IMAGES=2 \
-scripts/demo_stream_highres.sh "A photorealistic product hero image, no text."
+同步基线：
+
+```text
+python scripts/mtm_image2.py --prompt "A simple product photo, no text." --size 1024x1024 --quality medium --format png
 ```
 
 ## 验证标准
@@ -67,6 +65,6 @@ scripts/demo_stream_highres.sh "A photorealistic product hero image, no text."
 
 如果 `stream=false` 请求在公网入口返回超时，而本机 origin 或 streaming 请求成功，优先判断为链路空闲超时，不是模型不可用。处理顺序：
 
-1. 改用 `stream=true` + `partial_images=1..3`。
+1. 改用 Python 命令中的 `--stream --partial-images 1..3`。
 2. 对产品接口改成异步任务：快速返回 job id，后台生成，客户端轮询或下载结果。
 3. 只有必须保留同步接口时，才检查网关是否会在 images 非流式路径 flush keepalive。仅设置网关 keepalive 间隔不等于已经修复 `stream=false` 的长等待。

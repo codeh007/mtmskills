@@ -58,8 +58,8 @@
 
 需要 2K/4K、`quality=high`、复杂写实图、产品成品或公网网关容易超时的任务，先读 `references/stable-highres-demo.md`，优先运行：
 
-```bash
-scripts/demo_stream_highres.sh
+```text
+python scripts/mtm_image2.py --prompt "<final prompt>" --size 2048x2048 --quality high --format jpeg --stream --partial-images 2
 ```
 
 只有在确认链路可稳定承受同步长等待时，才用 `stream=false` 做最终同步生成。产品化接口更适合异步 job：快速返回 job id，后台生成，客户端轮询或下载结果。

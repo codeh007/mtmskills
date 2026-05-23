@@ -4,9 +4,11 @@ from __future__ import annotations
 
 import base64
 import importlib.util
+import os
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 
 SCRIPT = Path(__file__).resolve().parents[1] / "scripts" / "mtm_image2.py"
@@ -17,6 +19,95 @@ SPEC.loader.exec_module(mtm_image2)
 
 
 class StreamingImagesTest(unittest.TestCase):
+    def test_normalize_base_url_reads_codex_home_profile_provider(self) -> None:
+        config = """
+profile = "relay"
+
+[profiles.relay]
+model_provider = "sub2api"
+
+[model_providers.sub2api]
+base_url = "https://relay.example.com"
+env_key = "RELAY_API_KEY"
+"""
+        with tempfile.TemporaryDirectory() as tmp:
+            codex_home = Path(tmp) / ".codex"
+            codex_home.mkdir()
+            (codex_home / "config.toml").write_text(config, encoding="utf-8")
+
+            with patch.dict(os.environ, {"CODEX_HOME": str(codex_home)}, clear=True):
+                self.assertEqual(mtm_image2.normalize_base_url(None), "https://relay.example.com/v1")
+
+    def test_get_api_key_uses_provider_env_key_before_openai_api_key(self) -> None:
+        config = """
+model_provider = "relay"
+
+[model_providers.relay]
+base_url = "https://relay.example.com/v1"
+env_key = "RELAY_API_KEY"
+"""
+        with tempfile.TemporaryDirectory() as tmp:
+            codex_home = Path(tmp) / ".codex"
+            codex_home.mkdir()
+            (codex_home / "config.toml").write_text(config, encoding="utf-8")
+
+            env = {
+                "CODEX_HOME": str(codex_home),
+                "RELAY_API_KEY": "relay-key",
+                "OPENAI_API_KEY": "openai-key",
+            }
+            with patch.dict(os.environ, env, clear=True):
+                self.assertEqual(mtm_image2.get_api_key(None), "relay-key")
+
+    def test_provider_headers_and_query_params_resolve_from_codex_config(self) -> None:
+        config = """
+model_provider = "relay"
+
+[model_providers.relay]
+base_url = "https://relay.example.com/v1"
+
+[model_providers.relay.http_headers]
+X-Static = "static-value"
+
+[model_providers.relay.env_http_headers]
+X-Env = "RELAY_HEADER"
+
+[model_providers.relay.query_params]
+api-version = "2026-05-23"
+"""
+        with tempfile.TemporaryDirectory() as tmp:
+            codex_home = Path(tmp) / ".codex"
+            codex_home.mkdir()
+            (codex_home / "config.toml").write_text(config, encoding="utf-8")
+
+            with patch.dict(os.environ, {"CODEX_HOME": str(codex_home), "RELAY_HEADER": "env-value"}, clear=True):
+                self.assertEqual(
+                    mtm_image2.provider_headers(),
+                    {"X-Static": "static-value", "X-Env": "env-value"},
+                )
+                self.assertEqual(mtm_image2.provider_query_params(), {"api-version": "2026-05-23"})
+                self.assertEqual(
+                    mtm_image2.append_query_params(
+                        "https://relay.example.com/v1/images/generations",
+                        mtm_image2.provider_query_params(),
+                    ),
+                    "https://relay.example.com/v1/images/generations?api-version=2026-05-23",
+                )
+
+    def test_redact_secret_fragments_masks_api_key_like_values(self) -> None:
+        message = (
+            "Incorrect API key provided: "
+            "sk-1234567890abcdef*******************************1234. "
+            "Authorization: Bearer abcdef1234567890"
+        )
+
+        redacted = mtm_image2.redact_secret_fragments(message)
+
+        self.assertNotIn("1234567890abcdef", redacted)
+        self.assertNotIn("abcdef1234567890", redacted)
+        self.assertIn("sk-***REDACTED***", redacted)
+        self.assertIn("Bearer ***REDACTED***", redacted)
+
     def test_build_generation_payload_includes_streaming_options(self) -> None:
         payload = mtm_image2.build_generation_payload(
             model="gpt-image-2",

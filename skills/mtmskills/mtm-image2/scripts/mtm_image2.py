@@ -18,14 +18,19 @@ import os
 import re
 import sys
 import time
+import urllib.parse
 import urllib.error
 import urllib.request
 from pathlib import Path
 from uuid import uuid4
 
 
+def codex_home() -> Path:
+    return Path(os.environ.get("CODEX_HOME", Path.home() / ".codex")).expanduser()
+
+
 def read_codex_config() -> dict:
-    path = Path.home() / ".codex" / "config.toml"
+    path = codex_home() / "config.toml"
     if not path.is_file():
         return {}
     text = path.read_text(encoding="utf-8")
@@ -61,26 +66,50 @@ def parse_codex_config_fallback(text: str) -> dict:
     return config
 
 
-def read_codex_base_url() -> str | None:
+def effective_codex_config(profile_name: str | None = None) -> dict:
     config = read_codex_config()
-    provider_name = config.get("model_provider")
+    active_profile = profile_name or config.get("profile")
+    profiles = config.get("profiles", {})
+    if active_profile and isinstance(profiles, dict):
+        profile = profiles.get(str(active_profile))
+        if isinstance(profile, dict):
+            merged = dict(config)
+            merged.update(profile)
+            return merged
+    return config
+
+
+def get_active_provider(config: dict) -> dict:
     providers = config.get("model_providers", {})
+    if not isinstance(providers, dict):
+        providers = {}
+    provider_name = config.get("model_provider")
     if provider_name and isinstance(providers, dict):
         provider = providers.get(provider_name)
+        if isinstance(provider, dict):
+            return provider
+    if provider_name == "openai" or not provider_name:
+        base_url = config.get("openai_base_url")
+        if base_url:
+            return {"base_url": base_url}
+    for provider in providers.values():
         if isinstance(provider, dict) and provider.get("base_url"):
-            return str(provider["base_url"])
-    for provider in providers.values() if isinstance(providers, dict) else []:
-        if isinstance(provider, dict) and provider.get("base_url"):
-            return str(provider["base_url"])
-    return None
+            return provider
+    return {}
 
 
-def normalize_base_url(value: str | None) -> str:
+def read_codex_base_url(profile_name: str | None = None) -> str | None:
+    provider = get_active_provider(effective_codex_config(profile_name))
+    value = provider.get("base_url")
+    return str(value) if value else None
+
+
+def normalize_base_url(value: str | None, codex_profile: str | None = None) -> str:
     base = (
         value
         or os.environ.get("OPENAI_BASE_URL")
         or os.environ.get("OPENAI_API_BASE")
-        or read_codex_base_url()
+        or read_codex_base_url(codex_profile)
         or "https://api.openai.com"
     ).rstrip("/")
     return base if base.endswith("/v1") else f"{base}/v1"
@@ -105,7 +134,7 @@ def find_secret_value(data: object) -> str | None:
 
 
 def read_codex_key() -> str | None:
-    path = Path.home() / ".codex" / "auth.json"
+    path = codex_home() / "auth.json"
     if not path.is_file():
         return None
     try:
@@ -115,11 +144,52 @@ def read_codex_key() -> str | None:
     return find_secret_value(data)
 
 
-def get_api_key(cli_key: str | None) -> str:
-    key = cli_key or os.environ.get("OPENAI_API_KEY") or read_codex_key()
+def read_provider_env_key(codex_profile: str | None = None) -> str | None:
+    provider = get_active_provider(effective_codex_config(codex_profile))
+    env_key = provider.get("env_key")
+    if isinstance(env_key, str) and env_key:
+        return os.environ.get(env_key)
+    token = provider.get("experimental_bearer_token")
+    return str(token) if token else None
+
+
+def get_api_key(cli_key: str | None, codex_profile: str | None = None) -> str:
+    key = cli_key or read_provider_env_key(codex_profile) or os.environ.get("OPENAI_API_KEY") or read_codex_key()
     if not key:
         raise SystemExit("Missing API key. Set OPENAI_API_KEY or configure ~/.codex/auth.json.")
     return key
+
+
+def provider_headers(codex_profile: str | None = None) -> dict[str, str]:
+    provider = get_active_provider(effective_codex_config(codex_profile))
+    headers: dict[str, str] = {}
+    static_headers = provider.get("http_headers")
+    if isinstance(static_headers, dict):
+        headers.update({str(k): str(v) for k, v in static_headers.items()})
+    env_headers = provider.get("env_http_headers")
+    if isinstance(env_headers, dict):
+        for header, env_name in env_headers.items():
+            value = os.environ.get(str(env_name))
+            if value:
+                headers[str(header)] = value
+    return headers
+
+
+def provider_query_params(codex_profile: str | None = None) -> dict[str, str]:
+    provider = get_active_provider(effective_codex_config(codex_profile))
+    params = provider.get("query_params")
+    if not isinstance(params, dict):
+        return {}
+    return {str(key): str(value) for key, value in params.items()}
+
+
+def append_query_params(url: str, params: dict[str, str]) -> str:
+    if not params:
+        return url
+    parts = urllib.parse.urlsplit(url)
+    query = urllib.parse.parse_qsl(parts.query, keep_blank_values=True)
+    query.extend(params.items())
+    return urllib.parse.urlunsplit(parts._replace(query=urllib.parse.urlencode(query)))
 
 
 def slugify(text: str) -> str:
@@ -140,17 +210,20 @@ def save_prompt(prompt: str, path: Path) -> None:
     path.write_text(prompt, encoding="utf-8")
 
 
-def request_json(url: str, key: str, payload: dict) -> dict:
+def request_json(url: str, key: str, payload: dict, extra_headers: dict[str, str] | None = None) -> dict:
     body = json.dumps({k: v for k, v in payload.items() if v is not None}).encode("utf-8")
+    headers = {
+        "Authorization": f"Bearer {key}",
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+        "User-Agent": "mtm-image2/1.0",
+    }
+    if extra_headers:
+        headers.update(extra_headers)
     req = urllib.request.Request(
         url,
         data=body,
-        headers={
-            "Authorization": f"Bearer {key}",
-            "Content-Type": "application/json",
-            "Accept": "application/json",
-            "User-Agent": "mtm-image2/1.0",
-        },
+        headers=headers,
         method="POST",
     )
     return read_response(req)
@@ -187,17 +260,20 @@ def build_generation_payload(
     return {k: v for k, v in payload.items() if v is not None}
 
 
-def request_stream(url: str, key: str, payload: dict) -> list[dict]:
+def request_stream(url: str, key: str, payload: dict, extra_headers: dict[str, str] | None = None) -> list[dict]:
     body = json.dumps(payload).encode("utf-8")
+    headers = {
+        "Authorization": f"Bearer {key}",
+        "Content-Type": "application/json",
+        "Accept": "text/event-stream",
+        "User-Agent": "mtm-image2/1.0",
+    }
+    if extra_headers:
+        headers.update(extra_headers)
     req = urllib.request.Request(
         url,
         data=body,
-        headers={
-            "Authorization": f"Bearer {key}",
-            "Content-Type": "application/json",
-            "Accept": "text/event-stream",
-            "User-Agent": "mtm-image2/1.0",
-        },
+        headers=headers,
         method="POST",
     )
     try:
@@ -205,7 +281,7 @@ def request_stream(url: str, key: str, payload: dict) -> list[dict]:
             return list(parse_sse_events(resp))
     except urllib.error.HTTPError as exc:
         detail = exc.read().decode("utf-8", errors="replace")
-        raise SystemExit(f"API stream request failed ({exc.code}): {detail}") from exc
+        raise SystemExit(f"API stream request failed ({exc.code}): {redact_secret_fragments(detail)}") from exc
 
 
 def parse_sse_events(lines) -> object:
@@ -263,7 +339,14 @@ def multipart_body(fields: dict[str, str], files: list[tuple[str, Path]], mask: 
     return b"".join(chunks), boundary
 
 
-def request_multipart(url: str, key: str, fields: dict[str, str], image_paths: list[Path], mask: Path | None) -> dict:
+def request_multipart(
+    url: str,
+    key: str,
+    fields: dict[str, str],
+    image_paths: list[Path],
+    mask: Path | None,
+    extra_headers: dict[str, str] | None = None,
+) -> dict:
     files: list[tuple[str, Path]] = []
     for image in image_paths:
         if not image.is_file():
@@ -273,15 +356,18 @@ def request_multipart(url: str, key: str, fields: dict[str, str], image_paths: l
         raise SystemExit(f"Mask file not found: {mask}")
 
     body, boundary = multipart_body(fields, files, mask)
+    headers = {
+        "Authorization": f"Bearer {key}",
+        "Content-Type": f"multipart/form-data; boundary={boundary}",
+        "Accept": "application/json",
+        "User-Agent": "mtm-image2/1.0",
+    }
+    if extra_headers:
+        headers.update(extra_headers)
     req = urllib.request.Request(
         url,
         data=body,
-        headers={
-            "Authorization": f"Bearer {key}",
-            "Content-Type": f"multipart/form-data; boundary={boundary}",
-            "Accept": "application/json",
-            "User-Agent": "mtm-image2/1.0",
-        },
+        headers=headers,
         method="POST",
     )
     return read_response(req)
@@ -293,7 +379,12 @@ def read_response(req: urllib.request.Request) -> dict:
             return json.loads(resp.read().decode("utf-8"))
     except urllib.error.HTTPError as exc:
         detail = exc.read().decode("utf-8", errors="replace")
-        raise SystemExit(f"API request failed ({exc.code}): {detail}") from exc
+        raise SystemExit(f"API request failed ({exc.code}): {redact_secret_fragments(detail)}") from exc
+
+
+def redact_secret_fragments(text: str) -> str:
+    text = re.sub(r"sk-[A-Za-z0-9_*.-]{12,}", "sk-***REDACTED***", text)
+    return re.sub(r"(Bearer\s+)[A-Za-z0-9._~+/=-]{12,}", r"\1***REDACTED***", text, flags=re.IGNORECASE)
 
 
 def save_images(data: list[dict], output: Path) -> list[str]:
@@ -377,6 +468,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--output-dir", default=os.environ.get("MTM_IMAGE2_OUTPUT_DIR", "mtm-image2-output"))
     parser.add_argument("--base-url")
     parser.add_argument("--api-key")
+    parser.add_argument("--codex-profile", help="Read provider settings from a named ~/.codex/config.toml profile.")
     parser.add_argument("--model", default=os.environ.get("OPENAI_IMAGE_MODEL", "gpt-image-2"))
     parser.add_argument("--size", default="1024x1024")
     parser.add_argument("--quality", default="high", choices=["auto", "low", "medium", "high"])
@@ -393,8 +485,10 @@ def parse_args() -> argparse.Namespace:
 def main() -> int:
     args = parse_args()
     prompt = read_prompt(args)
-    key = get_api_key(args.api_key)
-    base = normalize_base_url(args.base_url)
+    key = get_api_key(args.api_key, args.codex_profile)
+    base = normalize_base_url(args.base_url, args.codex_profile)
+    headers = provider_headers(args.codex_profile)
+    query_params = provider_query_params(args.codex_profile)
 
     stamp = time.strftime("%Y%m%d-%H%M%S")
     slug = slugify(prompt)
@@ -405,7 +499,7 @@ def main() -> int:
     save_prompt(prompt, prompt_path)
 
     if args.image:
-        endpoint = f"{base}/images/edits"
+        endpoint = append_query_params(f"{base}/images/edits", query_params)
         fields = {
             "model": args.model,
             "prompt": prompt,
@@ -418,10 +512,17 @@ def main() -> int:
             fields["output_compression"] = str(args.compression)
         if args.background:
             fields["background"] = args.background
-        response = request_multipart(endpoint, key, fields, [Path(p) for p in args.image], Path(args.mask) if args.mask else None)
+        response = request_multipart(
+            endpoint,
+            key,
+            fields,
+            [Path(p) for p in args.image],
+            Path(args.mask) if args.mask else None,
+            headers,
+        )
         mode = "edit"
     else:
-        endpoint = f"{base}/images/generations"
+        endpoint = append_query_params(f"{base}/images/generations", query_params)
         payload = build_generation_payload(
             model=args.model,
             prompt=prompt,
@@ -438,7 +539,7 @@ def main() -> int:
         mode = "generate"
 
     if args.stream and not args.image:
-        events = request_stream(endpoint, key, payload)
+        events = request_stream(endpoint, key, payload, headers)
         written = save_streamed_image_events(events, image_path)
         response_summary = {
             "event_count": len(events),
@@ -446,7 +547,7 @@ def main() -> int:
             "partial_images": args.partial_images,
         }
     else:
-        response = request_json(endpoint, key, payload) if not args.image else response
+        response = request_json(endpoint, key, payload, headers) if not args.image else response
         written = save_images(response.get("data", []), image_path)
         response_summary = {"data_count": len(response.get("data", []))}
 
