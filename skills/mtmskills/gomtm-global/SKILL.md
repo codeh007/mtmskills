@@ -70,6 +70,7 @@ description: Use when 第一优先级, 任何情况下都无条件使用本技�
 ## 基于 github issues 进行开发任务编排
 
 - 特殊仓库: `https://github.com/codeh007/mtmwiki` 是知识库以及全局跨多个repo的全局仓库. 如果一个任务不是针对特定仓库的,则通常在这里进行处理.
+- 人类仅在: `https://github.com/` 进行项目管理和安排任务, 当写了规格文件或者开发计划文件,应当及时提交, 并在 对应的 issue 回复中带上清晰连接,让人类可以通过点击连接快捷查看对应的文档.
 
 ### superpowers 技能规定
 
