@@ -19,6 +19,7 @@ description: Use when 用户需要 GPT Image 2 / gpt-image-2 图片生成、参�
 - 生成/编辑流程：`references/workflow.md`
 - Prompt 模板：`references/prompting.md`
 - API 边界与验收：`references/api-boundaries.md`
+- 稳定高清生图演示：`references/stable-highres-demo.md`
 
 按任务只读必要文件。
 
@@ -28,7 +29,7 @@ description: Use when 用户需要 GPT Image 2 / gpt-image-2 图片生成、参�
 2. 明确用途：产品图、海报、UI mockup、角色、插画、信息图、社媒图、学术图、分镜等。
 3. 收集关键约束：主体、受众、风格、精确文字、尺寸、参考图、必须保持不变的元素、质量/成本目标。
 4. 用 `references/prompting.md` 组织最终 prompt；只有缺失信息会显著改变结果时，问一个短问题。
-5. 可执行时运行 `scripts/mtm_image2.py` 或宿主原生图片工具。
+5. 可执行时运行 `scripts/mtm_image2.py` 或宿主原生图片工具；高清或长耗时任务优先按 `references/stable-highres-demo.md` 使用 streaming 演示路径。
 6. 执行前确认：API 基址、图片模型、尺寸、质量、输出路径、参考图和 mask。
 7. 执行后报告：图片路径、prompt 路径、模型、下一步可改进点。
 
@@ -51,6 +52,8 @@ description: Use when 用户需要 GPT Image 2 / gpt-image-2 图片生成、参�
 ## 脚本
 
 - `scripts/mtm_image2.py`：Python 3 标准库脚本，支持 `/v1/images/generations` 与 `/v1/images/edits`。
+- `scripts/demo_stream_highres.sh`：独立高清 streaming 演示，默认 `stream=true` + `partial_images=2`。
+- `scripts/demo_sync_baseline.sh`：独立同步基线演示，用于对照端点、模型、key 是否基本可用。
 - `templates/prompt-brief.md`：Codex app / 普通用户 brief 模板。
 
 不要打印 API key，不要把密钥写进技能目录或仓库。

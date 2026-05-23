@@ -20,6 +20,7 @@
 - 必须出现的文字、拼写和语言。
 - 约束：无水印、无多余 logo、不改变人脸/产品形状等。
 - 图片输出路径和 prompt 归档路径。
+- 高清、复杂 prompt 或公网入口调用时，优先使用 streaming 演示路径。
 
 ## 编辑检查
 
@@ -53,10 +54,21 @@
 4. 命令返回后报告保存路径。
 5. 修订时基于上一次 prompt 和图片路径继续，不从模糊需求重来。
 
+## 高清稳定路径
+
+需要 2K/4K、`quality=high`、复杂写实图、产品成品或公网网关容易超时的任务，先读 `references/stable-highres-demo.md`，优先运行：
+
+```bash
+scripts/demo_stream_highres.sh
+```
+
+只有在确认链路可稳定承受同步长等待时，才用 `stream=false` 做最终同步生成。产品化接口更适合异步 job：快速返回 job id，后台生成，客户端轮询或下载结果。
+
 ## 失败处理
 
 - 缺少 API key：说明缺什么、放哪里；不要让用户把密钥贴到公开 issue。
 - 端点不支持：确认 provider 是否支持 `/v1/images/generations` 和 `/v1/images/edits`。
 - 模型不可用：说明请求的模型，建议检查 `/v1/models`。
+- 公网超时：对比 `scripts/demo_sync_baseline.sh` 和 `scripts/demo_stream_highres.sh`；stream 成功而 sync 超时通常是链路空闲超时。
 - 拒绝或审核失败：概括原因，给出合规改写。
 - 出图质量差：保留 prompt/report，只调整具体字段。

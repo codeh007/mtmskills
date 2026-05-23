@@ -76,7 +76,13 @@ def read_codex_base_url() -> str | None:
 
 
 def normalize_base_url(value: str | None) -> str:
-    base = (value or os.environ.get("OPENAI_BASE_URL") or read_codex_base_url() or "https://api.openai.com").rstrip("/")
+    base = (
+        value
+        or os.environ.get("OPENAI_BASE_URL")
+        or os.environ.get("OPENAI_API_BASE")
+        or read_codex_base_url()
+        or "https://api.openai.com"
+    ).rstrip("/")
     return base if base.endswith("/v1") else f"{base}/v1"
 
 
@@ -148,6 +154,80 @@ def request_json(url: str, key: str, payload: dict) -> dict:
         method="POST",
     )
     return read_response(req)
+
+
+def build_generation_payload(
+    *,
+    model: str,
+    prompt: str,
+    size: str,
+    quality: str,
+    n: int,
+    output_format: str,
+    output_compression: int | None,
+    background: str | None,
+    moderation: str,
+    stream: bool,
+    partial_images: int,
+) -> dict:
+    payload = {
+        "model": model,
+        "prompt": prompt,
+        "size": size,
+        "quality": quality,
+        "n": n,
+        "output_format": output_format,
+        "output_compression": output_compression,
+        "background": background,
+        "moderation": moderation,
+    }
+    if stream:
+        payload["stream"] = True
+        payload["partial_images"] = partial_images
+    return {k: v for k, v in payload.items() if v is not None}
+
+
+def request_stream(url: str, key: str, payload: dict) -> list[dict]:
+    body = json.dumps(payload).encode("utf-8")
+    req = urllib.request.Request(
+        url,
+        data=body,
+        headers={
+            "Authorization": f"Bearer {key}",
+            "Content-Type": "application/json",
+            "Accept": "text/event-stream",
+            "User-Agent": "mtm-image2/1.0",
+        },
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=900) as resp:
+            return list(parse_sse_events(resp))
+    except urllib.error.HTTPError as exc:
+        detail = exc.read().decode("utf-8", errors="replace")
+        raise SystemExit(f"API stream request failed ({exc.code}): {detail}") from exc
+
+
+def parse_sse_events(lines) -> object:
+    data_lines: list[str] = []
+    for raw_line in lines:
+        line = raw_line.decode("utf-8", errors="replace") if isinstance(raw_line, bytes) else str(raw_line)
+        line = line.rstrip("\r\n")
+        if not line:
+            if data_lines:
+                data = "\n".join(data_lines)
+                data_lines = []
+                if data != "[DONE]":
+                    yield json.loads(data)
+            continue
+        if line.startswith(":"):
+            continue
+        if line.startswith("data:"):
+            data_lines.append(line[5:].lstrip())
+    if data_lines:
+        data = "\n".join(data_lines)
+        if data != "[DONE]":
+            yield json.loads(data)
 
 
 def multipart_body(fields: dict[str, str], files: list[tuple[str, Path]], mask: Path | None) -> tuple[bytes, str]:
@@ -236,6 +316,55 @@ def save_images(data: list[dict], output: Path) -> list[str]:
     return written
 
 
+def image_b64_from_event(event: dict) -> str | None:
+    for key in ("b64_json", "partial_image_b64", "result"):
+        value = event.get(key)
+        if isinstance(value, str) and value:
+            return value
+    data = event.get("data")
+    if isinstance(data, list) and data:
+        return image_b64_from_event(data[0])
+    if isinstance(data, dict):
+        return image_b64_from_event(data)
+    return None
+
+
+def save_streamed_image_events(events: list[dict], output: Path) -> list[str]:
+    output.parent.mkdir(parents=True, exist_ok=True)
+    written: list[str] = []
+    final_events = {
+        "image_generation.completed",
+        "image_generation.image",
+        "response.image_generation_call.completed",
+    }
+    partial_events = {
+        "image_generation.partial_image",
+        "response.image_generation_call.partial_image",
+    }
+
+    for event in events:
+        image_base64 = image_b64_from_event(event)
+        if not image_base64:
+            continue
+        event_type = str(event.get("type", ""))
+        if event_type in partial_events:
+            index = event.get("partial_image_index", len(written))
+            target = output.with_name(f"{output.stem}-partial-{index}{output.suffix}")
+        elif event_type in final_events or not any(path.endswith(output.name) for path in written):
+            target = output
+        else:
+            target = output.with_name(f"{output.stem}-{len(written)}{output.suffix}")
+        target.write_bytes(base64.b64decode(image_base64))
+        written.append(str(target))
+    if not written:
+        raise SystemExit("Stream completed without image data events.")
+    if not output.exists():
+        source = Path(written[-1])
+        output.write_bytes(source.read_bytes())
+        written.append(str(output))
+    return written
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Generate or edit images via gpt-image-2 compatible API.")
     parser.add_argument("--prompt")
@@ -256,6 +385,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--compression", type=int)
     parser.add_argument("--background", choices=["auto", "opaque"])
     parser.add_argument("--moderation", default="auto", choices=["auto", "low"])
+    parser.add_argument("--stream", action="store_true", help="Stream Image API events and save partial images.")
+    parser.add_argument("--partial-images", type=int, default=2, choices=[0, 1, 2, 3])
     return parser.parse_args()
 
 
@@ -291,28 +422,45 @@ def main() -> int:
         mode = "edit"
     else:
         endpoint = f"{base}/images/generations"
-        payload = {
-            "model": args.model,
-            "prompt": prompt,
-            "size": args.size,
-            "quality": args.quality,
-            "n": args.n,
-            "output_format": args.format,
-            "output_compression": args.compression,
-            "background": args.background,
-            "moderation": args.moderation,
-        }
-        response = request_json(endpoint, key, payload)
+        payload = build_generation_payload(
+            model=args.model,
+            prompt=prompt,
+            size=args.size,
+            quality=args.quality,
+            n=args.n,
+            output_format=args.format,
+            output_compression=args.compression,
+            background=args.background,
+            moderation=args.moderation,
+            stream=args.stream,
+            partial_images=args.partial_images,
+        )
         mode = "generate"
 
-    written = save_images(response.get("data", []), image_path)
+    if args.stream and not args.image:
+        events = request_stream(endpoint, key, payload)
+        written = save_streamed_image_events(events, image_path)
+        response_summary = {
+            "event_count": len(events),
+            "event_types": sorted({str(event.get("type", "")) for event in events if event.get("type")}),
+            "partial_images": args.partial_images,
+        }
+    else:
+        response = request_json(endpoint, key, payload) if not args.image else response
+        written = save_images(response.get("data", []), image_path)
+        response_summary = {"data_count": len(response.get("data", []))}
+
     report = {
         "mode": mode,
         "endpoint": endpoint,
         "model": args.model,
+        "size": args.size,
+        "quality": args.quality,
+        "stream": args.stream and not args.image,
         "prompt": str(prompt_path),
         "images": written,
         "report": str(report_path),
+        "response": response_summary,
     }
     report_path.parent.mkdir(parents=True, exist_ok=True)
     report_path.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")

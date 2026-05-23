@@ -7,6 +7,7 @@
 - `/v1/images/generations`
 - `/v1/images/edits`
 - 宿主支持时，也可用 Responses API image generation tool
+- 长耗时生成优先使用 `stream=true` 和 `partial_images=1..3`
 
 不要调用本地绘图库、HTML canvas、SVG 渲染器、matplotlib、PIL 绘图或截图技巧，并把它们当作 GPT Image 2 输出。
 
@@ -28,6 +29,7 @@ OpenAI-compatible 网关必须支持图片端点，而不只是 chat completions
 - edits 支持 multipart form 上传
 - `model=gpt-image-2`
 - 返回 `data[0].b64_json`，或返回脚本可下载的图片 URL
+- streaming 请求返回 SSE，并包含可解码的 partial 或 final image base64 事件
 
 如果网关只支持 `/v1/chat/completions` 或 `/v1/responses`，本技能仍可写 prompt，但不能保证真实 `gpt-image-2` 出图。
 
@@ -41,6 +43,7 @@ OpenAI-compatible 网关必须支持图片端点，而不只是 chat completions
 | multipart 失败 | edits 用了 JSON | 使用 multipart form，字段为 `image[]`/`image` 和可选 `mask`。 |
 | 没有 `b64_json` | 网关只返回 URL | 使用脚本 URL 下载能力或检查响应 JSON。 |
 | 文字渲染差 | 模型限制或文字太多 | 缩短文字、提高质量，或在设计工具中补最终文字。 |
+| 公网长请求 524/超时 | `stream=false` 长时间无响应字节，代理空闲超时 | 优先改用 streaming；产品接口改成异步 job；必须同步时才验证网关非流式 keepalive。 |
 
 ## 验收
 
@@ -50,5 +53,6 @@ OpenAI-compatible 网关必须支持图片端点，而不只是 chat completions
 2. 命令/API 调用成功。
 3. 已报告图片文件路径或宿主图片产物。
 4. 已确认输出来自 `gpt-image-2` 或用户明确指定的兼容 GPT Image 模型。
+5. 高清或长耗时任务已优先验证 streaming 路径，或说明为什么只能使用同步/异步 job 路径。
 
 prompt-only 模式只能说“prompt 已准备”，不能说“图片已生成”。
