@@ -7,9 +7,16 @@
 | Environment | What to do |
 | --- | --- |
 | Codex CLI / developer shell | 运行 `scripts/mtm_image2.py`。 |
-| Codex app 有 shell | 让 agent 运行 Python 脚本，并保存 prompt/image/report。 |
+| Codex app 有 shell | 优先运行本技能的 Python 脚本，并保存 prompt/image/report。 |
 | Codex app 无 shell | 交付完整 brief 与最终 prompt，说明仍需图片 API 执行环境。 |
-| 原生图片工具可用 | 把最终 prompt 与参考图交给宿主工具，仍保留 prompt。 |
+| 原生图片工具可用 | 只有确认宿主工具会调用 GPT Image 或兼容图片模型时，才把最终 prompt 与参考图交给宿主工具，仍保留 prompt。 |
+
+## Codex App 优先级
+
+- 用户要求图片成品时，`mtm-image2` 是主流程；内置 `imagegen` 只可作为能真实调用 GPT Image 的宿主工具。
+- 不要把缺少参考图、Pillow 安装失败、PowerShell 受限、浏览器可截图等情况解释为可以改用 HTML/SVG/Canvas/本地绘图交付。
+- 如果当前 Codex app 无法访问 shell、OpenAI Images API、Responses image tool 或兼容图片端点，输出 prompt-only，并明确“未生成图片”。
+- 用户明确要求可编辑版式稿、SVG 或网页海报时，才把本地排版文件作为目标产物；这不属于 GPT Image 生成结果。
 
 ## 运行时要求
 

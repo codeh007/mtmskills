@@ -11,6 +11,8 @@
 
 不要调用本地绘图库、HTML canvas、SVG 渲染器、matplotlib、PIL 绘图或截图技巧，并把它们当作 GPT Image 2 输出。
 
+Codex app 的默认 `imagegen` 技能不自动等于真实 GPT Image 输出。只有确认它背后调用了 OpenAI Images API、Responses image generation tool 或兼容 GPT Image 模型时，才可把它作为本技能的执行工具。
+
 ## 端点选择
 
 | 用户请求 | 端点 |

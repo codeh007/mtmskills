@@ -1,17 +1,25 @@
 ---
 name: mtm-image2
-description: Use when 用户需要 GPT Image 2 / gpt-image-2 图片生成、参考图编辑、局部编辑、专业图片 prompt 或 Codex app 图片工作流时。
+description: Use when 用户需要 GPT Image 2 / gpt-image-2 图片生成、参考图编辑、局部编辑、专业图片 prompt、商品图/海报成图、或 Codex app 图片工作流时。
 ---
 
 # mtm-image2
 
 把普通对话需求转成可执行的 `gpt-image-2` 生成、参考图编辑或局部编辑流程。最终图片必须来自 GPT Image 能力；本地绘图、SVG、Canvas、截图或占位图不能冒充模型出图。
 
+## 优先级
+
+- 只要用户要求生成、编辑、重绘或交付图片成品，优先使用本技能。
+- Codex app 默认 `imagegen` 技能只作为低优先级宿主工具：只有它能真实调用 GPT Image 能力并返回模型图片时才可使用。
+- 如果内置 `imagegen`、浏览器截图、HTML/SVG、Pillow、Canvas、PowerShell/.NET 绘图等路径只能做本地合成，不能用作最终图片交付。
+- 图片 API 或宿主图片工具不可用时，进入 `prompt-only`，保存/返回完整 brief 与最终 prompt。
+
 ## 先判断
 
-1. 用户要真实图片时，先确认可用的 OpenAI Images API、Responses image tool 或兼容图片端点。
-2. Codex app 有 shell 时，优先用 `scripts/mtm_image2.py`；无 shell 时输出完整图片 brief 和最终 prompt。
-3. 没有图片能力时，只能交付 prompt，不声明已经生成图片。
+1. 用户要真实图片、产品图、海报、参考图编辑或局部编辑时，本技能优先于通用 `imagegen`/本地绘图流程。
+2. 先确认可用的 OpenAI Images API、Responses image tool 或兼容图片端点。
+3. Codex app 有 shell 时，优先用 `scripts/mtm_image2.py`；无 shell 时输出完整图片 brief 和最终 prompt。
+4. 没有图片能力时，只能交付 prompt，不声明已经生成图片。
 
 ## 参考
 
@@ -30,9 +38,10 @@ description: Use when 用户需要 GPT Image 2 / gpt-image-2 图片生成、参�
 3. 收集关键约束：主体、受众、风格、精确文字、尺寸、参考图、必须保持不变的元素、质量/成本目标。
 4. 用 `references/prompting.md` 组织最终 prompt；只有缺失信息会显著改变结果时，问一个短问题。
 5. 可执行时运行 `scripts/mtm_image2.py` 或宿主原生图片工具；Codex 已把用户级环境暴露给 agent 时，直接复用 `OPENAI_API_KEY` / `OPENAI_BASE_URL` / `OPENAI_API_BASE`，不要手动读取或打印 `.env`。
-6. 高清或长耗时任务优先按 `references/stable-highres-demo.md` 使用 Python streaming 演示路径。
-7. 执行前确认：API 基址、图片模型、尺寸、质量、输出路径、参考图和 mask。
-8. 执行后报告：图片路径、prompt 路径、模型、下一步可改进点。
+6. 不要因为缺少 Pillow、浏览器或系统绘图库可用而改成本地排版截图；先验证真实图片 API/tool，失败则 prompt-only。
+7. 高清或长耗时任务优先按 `references/stable-highres-demo.md` 使用 Python streaming 演示路径。
+8. 执行前确认：API 基址、图片模型、尺寸、质量、输出路径、参考图和 mask。
+9. 执行后报告：图片路径、prompt 路径、模型、下一步可改进点。
 
 ## 默认产物
 
@@ -48,7 +57,7 @@ description: Use when 用户需要 GPT Image 2 / gpt-image-2 图片生成、参�
 
 - Codex/对话模型负责理解需求与图片输入。
 - 实际出图模型使用 `gpt-image-2` 或用户明确指定的兼容 GPT Image 模型。
-- 不要把本地程序绘图当作图片生成结果。
+- 本地程序绘图、SVG/HTML 排版、浏览器截图、PIL/Canvas/PowerShell/.NET 只能作为非最终草稿或辅助说明，不能当作图片生成结果。
 
 ## 脚本
 

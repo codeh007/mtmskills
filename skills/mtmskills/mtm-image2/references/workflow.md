@@ -51,8 +51,10 @@
 1. 把用户自然语言需求转成结构化 brief。
 2. 需要参考图时，让用户在 Codex app 附图或提供文件路径。
 3. 有 shell 和 Python 时运行 `scripts/mtm_image2.py`。
-4. 命令返回后报告保存路径。
-5. 修订时基于上一次 prompt 和图片路径继续，不从模糊需求重来。
+4. 如果考虑使用内置 `imagegen`，先确认它会调用 GPT Image 或兼容图片模型；否则不要使用它做最终成图。
+5. 不因本地渲染工具可用而绕过图片 API；HTML/SVG/Canvas/浏览器截图最多是用户明确要求的版式稿。
+6. 命令返回后报告保存路径。
+7. 修订时基于上一次 prompt 和图片路径继续，不从模糊需求重来。
 
 ## 高清稳定路径
 
@@ -69,6 +71,7 @@ python scripts/mtm_image2.py --prompt "<final prompt>" --size 2048x2048 --qualit
 - 缺少 API key：先检查当前进程是否已有 `OPENAI_API_KEY`，再检查 Codex provider `env_key` 指向的环境变量；不要让用户把密钥贴到公开 issue。
 - 端点不支持：确认 provider 是否支持 `/v1/images/generations` 和 `/v1/images/edits`。
 - 模型不可用：说明请求的模型，建议检查 `/v1/models`。
+- Codex app 转向本地绘图：停止该路径，改为 `scripts/mtm_image2.py`、可用宿主图片工具或 prompt-only。
 - 公网超时：对比 `scripts/demo_sync_baseline.sh` 和 `scripts/demo_stream_highres.sh`；stream 成功而 sync 超时通常是链路空闲超时。
 - 拒绝或审核失败：概括原因，给出合规改写。
 - 出图质量差：保留 prompt/report，只调整具体字段。
