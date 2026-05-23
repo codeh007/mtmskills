@@ -60,59 +60,18 @@ cp auth.json "auth.$(date +%Y%m%d-%H%M%S).json"
 - 需要使用 `sub2api` 中转模型的开发者复制 `templates/config.developer.toml`，并先确保当前 shell 或系统环境变量里存在 `SUB2API_API_KEY`。
 - 只有一个 Codex CLI 配置技能：保留 `gomtm-codex-dev`，不要再新增同类技能；其他技能只能链接到这里，不应各自维护 Codex 主配置模板。
 
-## OpenAI-compatible provider
-
-Codex 支持在 `config.toml` 中定义第三方 OpenAI-compatible provider。认证有三种常见方式：
-
-| 方式 | 配置 | 适用场景 |
-|---|---|---|
-| `requires_openai_auth = true` | API key 保存在 `auth.json` 的 `OPENAI_API_KEY` | 当前本机已登录或希望复用 Codex 官方登录流程 |
-| `env_key = "ENV_NAME"` | API key 来自环境变量 | 推荐方式，密钥不落入 `config.toml` |
-| `experimental_bearer_token = "sk-..."` | API key 直接写在 provider 下 | 可用但不推荐，只适合受控私有机器或临时验证 |
-
-不要把 `[model_providers.<id>.auth]` 与 `env_key`、`experimental_bearer_token`、`requires_openai_auth` 同时使用。
-
 ## sub2api 当前模型
 
 截至 2026-05-19，通过当前可用 key 查询 `https://sub2api.yuepa8.com/v1/models`，接口可见模型为：
 
 ```text
-gpt-4o-audio-preview
-gpt-4o-realtime-preview
-gpt-5.2
-gpt-5.2-2025-12-11
-gpt-5.2-chat-latest
-gpt-5.2-pro
-gpt-5.2-pro-2025-12-11
-gpt-5.3-codex
-gpt-5.3-codex-spark
 gpt-5.4
-gpt-5.4-2026-03-05
 gpt-5.4-mini
 gpt-5.5
 gpt-image-1
 gpt-image-1.5
 gpt-image-2
 ```
-
-Codex agent 主模型应使用文本/编码模型。当前可写入 `config.toml` profile 的 OpenAI 文本/编码模型为：
-
-```text
-gpt-5.5
-gpt-5.4
-gpt-5.4-2026-03-05
-gpt-5.4-mini
-gpt-5.3-codex
-gpt-5.2
-gpt-5.2-2025-12-11
-gpt-5.2-chat-latest
-gpt-5.2-pro
-gpt-5.2-pro-2025-12-11
-```
-
-其中 `codex debug models` 当前明确列出的 Codex 内置模型目录为 `gpt-5.5`、`gpt-5.4`、`gpt-5.4-mini`、`gpt-5.3-codex`、`gpt-5.2`。日期版本、pro、chat-latest 等模型来自 `sub2api` 的 `/v1/models`，可以作为 profile 预置，实际使用时仍应以 `codex exec -p <profile>` 最小任务验证。`gpt-5.3-codex-spark` 当前虽然在列表可见，但 2026-05-19 直接调用 `/v1/responses` 返回 502，不放入开箱即用 profile。
-
-`gpt-image-*`、`gpt-4o-audio-preview`、`gpt-4o-realtime-preview` 虽然在 API 列表可见，但不适合作为 Codex CLI 的主模型。图片模型应通过 OpenAI-compatible 图片接口单独调用，不要写成 `model = "gpt-image-2"`。
 
 查询模型：
 
@@ -140,21 +99,6 @@ codex -p gpt-5.5
 ```
 
 ## 开发者中转配置
-
-需要使用 `sub2api` 时，使用 `templates/config.developer.toml`。该模板使用一个 provider 加多个 profile，复制后再按本机环境调整。
-
-环境变量方式：
-
-```bash
-export SUB2API_API_KEY="sk-..."
-codex -p gpt-5.4
-```
-
-如果明确需要把 key 直接写进 `config.toml`，把 `env_key` 替换为：
-
-```toml
-experimental_bearer_token = "sk-..."
-```
 
 如果希望沿用 `auth.json` 的 `OPENAI_API_KEY`，可以改成：
 
@@ -185,7 +129,7 @@ Windows 下的配置结构和 Linux 基本一致，只有少量差异需要单�
 ```bash
 codex -m gpt-5.4
 codex -p gpt-5.3-codex
-codex exec -p gpt-5.2 "用一句话回复当前模型是否可用"
+codex exec -p gpt-5.5 "用一句话回复当前模型是否可用"
 ```
 
 配置验证：
@@ -220,6 +164,4 @@ Codex App 是桌面端，不是 CLI。它更适合管理多个 agent、查看 di
 
 - 先运行 `codex doctor --json`，不要凭记忆判断配置是否生效。
 - `base_url` 按实际可用服务填写。当前 `sub2api.yuepa8.com` 的 Codex 配置使用 `https://sub2api.yuepa8.com`，不要盲目追加 `/v1`。
-- 认证失败时先确认 provider 使用的是 `env_key`、`experimental_bearer_token` 还是 `requires_openai_auth`，再查对应凭据位置。
 - 模型不可用时同时查两处：`/v1/models` 的接口列表，以及 `codex debug models` 的 Codex 模型目录。接口可见不等于适合作为 Codex 主模型。
-- 第三方 OpenAI-compatible 服务可能只兼容部分 Responses API 行为。出现流式、工具调用、图片/音频相关问题时，用最小 `codex exec` 任务和直接 `curl` 分别验证。

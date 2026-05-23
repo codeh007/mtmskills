@@ -1,62 +1,56 @@
 ---
 name: mtm-image2
-description: Use when a user wants GPT Image 2 / gpt-image-2 image generation, reference-image editing, inpainting, prompt engineering for professional images, or Codex app image workflows, especially with sub2api/OpenAI-compatible endpoints.
+description: Use when a user wants GPT Image 2 / gpt-image-2 image generation, reference-image editing, inpainting, professional image prompt engineering, or Codex app image workflows.
 ---
 
 # mtm-image2
 
-Use this skill to turn normal chat requests into professional `gpt-image-2` image generation or editing workflows. The output must come from `gpt-image-2` or a compatible image API; programmatically drawn placeholder images are not acceptable.
+把普通对话需求转成可执行的 `gpt-image-2` 生成、参考图编辑或局部编辑流程。最终图片必须来自 GPT Image 能力；本地绘图、SVG、Canvas、截图或占位图不能冒充模型出图。
 
-## First Decision
+## 先判断
 
-1. If the user wants an actual image now, verify an image API path exists. Prefer the current Codex/OpenAI-compatible config when available; otherwise use the setup guide.
-2. If the user is in Codex desktop/app and cannot run scripts, act as a prompt director: produce a complete image brief and tell the Codex app agent exactly which bundled script/template to use when it has shell access.
-3. If no API/tool path is available, do not pretend an image was generated. Save or return the final prompt and clearly state that execution still needs an image-capable runtime.
+1. 用户要真实图片时，先确认可用的 OpenAI Images API、Responses image tool 或兼容图片端点。
+2. Codex app 有 shell 时，优先用 `scripts/mtm_image2.py`；无 shell 时输出完整图片 brief 和最终 prompt。
+3. 没有图片能力时，只能交付 prompt，不声明已经生成图片。
 
-## Reference Map
+## 参考
 
-- Fresh install, Windows, Codex app, and sub2api setup: `references/setup-and-environment.md`.
-- Generation/editing workflow and mode selection: `references/workflow.md`.
-- Prompt structure, templates, and quality rules: `references/prompting.md`.
-- API boundaries, model routing, errors, and verification: `references/api-boundaries.md`.
+- 环境与 Codex app：`references/setup-and-environment.md`
+- 生成/编辑流程：`references/workflow.md`
+- Prompt 模板：`references/prompting.md`
+- API 边界与验收：`references/api-boundaries.md`
 
-Read only the files needed for the current task.
+按任务只读必要文件。
 
-## Operating Loop
+## 执行
 
-1. Classify the request as `generate`, `edit`, `inpaint`, `multi-reference edit`, or `prompt-only`.
-2. Identify deliverable type: product photo, poster, UI mockup, character, diagram, infographic, social post, academic figure, map, storyboard, or other.
-3. Capture required facts: subject, audience, style, exact text, aspect ratio/size, reference images, edit invariants, and quality/cost target.
-4. Build a final prompt using `references/prompting.md`; ask at most one short clarification when missing facts would materially change the result.
-5. Choose execution:
-   - Windows/fresh Codex app host: `scripts/Invoke-MtmImage2.ps1`.
-   - Developer shell with Python 3.10+: `scripts/mtm_image2.py`.
-   - Host-native image tool: pass the final prompt and image references to that tool.
-6. Before execution, confirm endpoint mode, model, size, quality, output path, and reference/mask files.
-7. After execution, report saved image path(s), prompt path, model, and one concrete refinement option.
+1. 分类：`generate`、`edit`、`inpaint`、`multi-reference edit`、`prompt-only`。
+2. 明确用途：产品图、海报、UI mockup、角色、插画、信息图、社媒图、学术图、分镜等。
+3. 收集关键约束：主体、受众、风格、精确文字、尺寸、参考图、必须保持不变的元素、质量/成本目标。
+4. 用 `references/prompting.md` 组织最终 prompt；只有缺失信息会显著改变结果时，问一个短问题。
+5. 可执行时运行 `scripts/mtm_image2.py` 或宿主原生图片工具。
+6. 执行前确认：API 基址、图片模型、尺寸、质量、输出路径、参考图和 mask。
+7. 执行后报告：图片路径、prompt 路径、模型、下一步可改进点。
 
-## Default Paths
+## 默认产物
 
-Use the current workspace unless the user specifies a folder.
+用户未指定目录时，写入当前 workspace：
 
 - Prompts: `mtm-image2-output/prompts/<slug>-<timestamp>.md`
 - Images: `mtm-image2-output/images/<slug>-<timestamp>.<format>`
 - Reports: `mtm-image2-output/reports/<slug>-<timestamp>.json`
 
-Always preserve the final prompt. It is the reproducible source artifact.
+必须保存最终 prompt，它是可复现源文件。
 
-## Model Rules
+## 模型边界
 
-- Codex main model: use `gpt-5.5` or another text/coding model for reasoning and conversation.
-- Image model: use `gpt-image-2` for actual image generation/editing.
-- Do not configure `gpt-image-2` as the Codex agent's main chat model.
-- With sub2api, default base URL is `https://sub2api.yuepa8.com`; scripts normalize it to `/v1`.
+- 对话/规划模型负责理解需求与图片输入。
+- 实际出图模型使用 `gpt-image-2` 或用户明确指定的兼容 GPT Image 模型。
+- 不要把本地程序绘图当作图片生成结果。
 
-## Script Summary
+## 脚本
 
-- `scripts/Invoke-MtmImage2.ps1`: PowerShell 5.1+ script for Windows/macOS/Linux PowerShell. Uses only built-in PowerShell/.NET HTTP and multipart APIs.
-- `scripts/mtm_image2.py`: optional Python helper using only the standard library. Good for Linux/macOS/WSL/developer shells.
-- `templates/prompt-brief.md`: user-facing brief template for Codex desktop conversations.
-- `templates/config.env.example`: non-secret environment template.
+- `scripts/mtm_image2.py`：Python 3 标准库脚本，支持 `/v1/images/generations` 与 `/v1/images/edits`。
+- `templates/prompt-brief.md`：Codex app / 普通用户 brief 模板。
 
-Never print API keys. Do not write secrets into the skill directory or repo.
+不要打印 API key，不要把密钥写进技能目录或仓库。
