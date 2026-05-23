@@ -1,29 +1,29 @@
-# mtm-image2 Prompt Brief
+# mtm-image2 图片需求
 
-Use GPT Image 2 / gpt-image-2. Do not draw the image with local code.
+使用 GPT Image 2 / `gpt-image-2`。不要用本地代码绘图冒充模型输出。
 
-Task type: generate / edit / inpaint / multi-reference edit
+任务类型：generate / edit / inpaint / multi-reference edit
 
-Subject:
+主体：
 
-Purpose and audience:
+用途和受众：
 
-Style:
+风格：
 
-Composition:
+构图：
 
-Lighting/camera/rendering:
+光线/镜头/渲染：
 
-Exact text in image:
+图片中的精确文字：
 
-Reference images:
+参考图：
 
-Must preserve:
+必须保持：
 
-Must avoid:
+必须避免：
 
-Size/aspect ratio:
+尺寸/比例：
 
-Quality:
+质量：
 
-Output folder:
+输出目录：

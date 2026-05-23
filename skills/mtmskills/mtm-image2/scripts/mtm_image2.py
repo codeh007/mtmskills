@@ -24,9 +24,78 @@ from pathlib import Path
 from uuid import uuid4
 
 
+def read_codex_config() -> dict:
+    path = Path.home() / ".codex" / "config.toml"
+    if not path.is_file():
+        return {}
+    text = path.read_text(encoding="utf-8")
+    try:
+        import tomllib
+
+        return tomllib.loads(text)
+    except Exception:
+        return parse_codex_config_fallback(text)
+
+
+def parse_codex_config_fallback(text: str) -> dict:
+    config: dict = {}
+    current: list[str] = []
+    for raw_line in text.splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#"):
+            continue
+        if line.startswith("[") and line.endswith("]"):
+            current = [part.strip('"') for part in line.strip("[]").split(".")]
+            node = config
+            for part in current:
+                node = node.setdefault(part, {})
+            continue
+        if "=" not in line:
+            continue
+        key, value = [part.strip() for part in line.split("=", 1)]
+        value = value.strip('"')
+        node = config
+        for part in current:
+            node = node.setdefault(part, {})
+        node[key] = value
+    return config
+
+
+def read_codex_base_url() -> str | None:
+    config = read_codex_config()
+    provider_name = config.get("model_provider")
+    providers = config.get("model_providers", {})
+    if provider_name and isinstance(providers, dict):
+        provider = providers.get(provider_name)
+        if isinstance(provider, dict) and provider.get("base_url"):
+            return str(provider["base_url"])
+    for provider in providers.values() if isinstance(providers, dict) else []:
+        if isinstance(provider, dict) and provider.get("base_url"):
+            return str(provider["base_url"])
+    return None
+
+
 def normalize_base_url(value: str | None) -> str:
-    base = (value or os.environ.get("OPENAI_BASE_URL") or "https://sub2api.yuepa8.com").rstrip("/")
+    base = (value or os.environ.get("OPENAI_BASE_URL") or read_codex_base_url() or "https://api.openai.com").rstrip("/")
     return base if base.endswith("/v1") else f"{base}/v1"
+
+
+def find_secret_value(data: object) -> str | None:
+    if isinstance(data, dict):
+        for name in ("OPENAI_API_KEY", "api_key", "apiKey"):
+            value = data.get(name)
+            if isinstance(value, str) and value:
+                return value
+        for value in data.values():
+            found = find_secret_value(value)
+            if found:
+                return found
+    elif isinstance(data, list):
+        for value in data:
+            found = find_secret_value(value)
+            if found:
+                return found
+    return None
 
 
 def read_codex_key() -> str | None:
@@ -37,18 +106,13 @@ def read_codex_key() -> str | None:
         data = json.loads(path.read_text(encoding="utf-8"))
     except Exception:
         return None
-    for name in ("OPENAI_API_KEY", "SUB2API_API_KEY", "api_key", "apiKey"):
-        value = data.get(name)
-        if value:
-            return str(value)
-    value = None
-    return str(value) if value else None
+    return find_secret_value(data)
 
 
 def get_api_key(cli_key: str | None) -> str:
-    key = cli_key or os.environ.get("OPENAI_API_KEY") or os.environ.get("SUB2API_API_KEY") or read_codex_key()
+    key = cli_key or os.environ.get("OPENAI_API_KEY") or read_codex_key()
     if not key:
-        raise SystemExit("Missing API key. Set OPENAI_API_KEY or SUB2API_API_KEY, or configure ~/.codex/auth.json.")
+        raise SystemExit("Missing API key. Set OPENAI_API_KEY or configure ~/.codex/auth.json.")
     return key
 
 
@@ -153,6 +217,8 @@ def read_response(req: urllib.request.Request) -> dict:
 
 
 def save_images(data: list[dict], output: Path) -> list[str]:
+    if not data:
+        raise SystemExit("API response did not include any image data.")
     output.parent.mkdir(parents=True, exist_ok=True)
     written: list[str] = []
     for index, item in enumerate(data):

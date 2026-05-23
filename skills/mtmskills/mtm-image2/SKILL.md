@@ -1,6 +1,6 @@
 ---
 name: mtm-image2
-description: Use when a user wants GPT Image 2 / gpt-image-2 image generation, reference-image editing, inpainting, professional image prompt engineering, or Codex app image workflows.
+description: Use when 用户需要 GPT Image 2 / gpt-image-2 图片生成、参考图编辑、局部编辑、专业图片 prompt 或 Codex app 图片工作流时。
 ---
 
 # mtm-image2
@@ -44,7 +44,7 @@ description: Use when a user wants GPT Image 2 / gpt-image-2 image generation, r
 
 ## 模型边界
 
-- 对话/规划模型负责理解需求与图片输入。
+- Codex/对话模型负责理解需求与图片输入。
 - 实际出图模型使用 `gpt-image-2` 或用户明确指定的兼容 GPT Image 模型。
 - 不要把本地程序绘图当作图片生成结果。
 

@@ -1,62 +1,62 @@
-# Workflow
+# 工作流
 
-## Request Types
+## 类型
 
-| Type | Trigger | Endpoint |
+| 类型 | 触发 | 端点 |
 | --- | --- | --- |
-| `generate` | Text prompt only | `/v1/images/generations` |
-| `edit` | One or more reference images | `/v1/images/edits` |
-| `inpaint` | Reference image plus mask | `/v1/images/edits` |
-| `prompt-only` | No API/tool path available | No API call |
+| `generate` | 只有文字 prompt | `/v1/images/generations` |
+| `edit` | 一张或多张参考图 | `/v1/images/edits` |
+| `inpaint` | 参考图加 mask | `/v1/images/edits` |
+| `prompt-only` | 没有可用 API/tool | 不调用 API |
 
-## Generation Checklist
+## 生成检查
 
-Before calling the API, determine:
+调用 API 前确认：
 
-- Subject and scene.
-- Intended use: poster, avatar, product photo, UI mockup, diagram, thumbnail, etc.
-- Aspect ratio or exact size.
-- Quality level: `low`, `medium`, `high`, or `auto`.
-- Required visible text, exact spelling, and language.
-- Negative constraints: avoid logos, watermarks, extra text, changed face, changed product shape, etc.
-- Output path and prompt archive path.
+- 主体和场景。
+- 用途：海报、头像、产品图、UI mockup、图解、缩略图等。
+- 比例或精确尺寸。
+- 质量：`low`、`medium`、`high`、`auto`。
+- 必须出现的文字、拼写和语言。
+- 约束：无水印、无多余 logo、不改变人脸/产品形状等。
+- 图片输出路径和 prompt 归档路径。
 
-## Editing Checklist
+## 编辑检查
 
-For edits, preserve what matters:
+编辑时先定义不变量：
 
-- Which image(s) are references.
-- What must stay unchanged: identity, pose, product shape, composition, text, colors, background, lighting.
-- What changes: object, background, style, camera angle, text, materials, local area.
-- If using a mask, confirm it has alpha and matches the source dimensions.
+- 哪些图片是参考图。
+- 必须保持：身份、姿势、产品形状、构图、文字、颜色、背景、光线。
+- 需要改变：对象、背景、风格、镜头、文字、材质、局部区域。
+- 使用 mask 时，确认有 alpha 通道且尺寸匹配源图。
 
-## Size Guidance
+## 尺寸
 
-Use exact API-supported sizes when possible.
+`gpt-image-2` 支持更多尺寸；优先使用官方常见尺寸，复杂尺寸需满足边长、比例、像素总量限制。
 
-| Use case | Size |
+| 用途 | 尺寸 |
 | --- | --- |
-| Square social/product/avatar | `1024x1024` |
-| Portrait poster/mobile cover | `1024x1536` |
-| Landscape hero/product banner | `1536x1024` |
-| 2K square final | `2048x2048` |
-| 4K landscape | `3840x2160` |
-| 4K portrait | `2160x3840` |
+| 方形社媒/产品/头像 | `1024x1024` |
+| 竖版海报/手机封面 | `1024x1536` |
+| 横版 hero/产品 banner | `1536x1024` |
+| 2K 方形成品 | `2048x2048` |
+| 4K 横版 | `3840x2160` |
+| 4K 竖版 | `2160x3840` |
 
-Use `high` for text-heavy images, product finals, UI mockups, diagrams, and brand assets. Use `low` for rough exploration.
+文字多、产品成品、UI mockup、图解、品牌资产用 `high`；草稿探索用 `low`。
 
-## Codex App Flow For Non-Programmers
+## Codex App
 
-1. Convert the user's plain-language request into a structured image brief.
-2. If references are needed, ask the user to attach images in Codex app or provide file paths.
-3. Ask Codex to run `Invoke-MtmImage2.ps1` on Windows, or the Python helper on systems with Python.
-4. After the command returns, tell the user where the file was saved.
-5. For revisions, use the previous prompt and image path as the starting point; do not restart from a vague prompt.
+1. 把用户自然语言需求转成结构化 brief。
+2. 需要参考图时，让用户在 Codex app 附图或提供文件路径。
+3. 有 shell 和 Python 时运行 `scripts/mtm_image2.py`。
+4. 命令返回后报告保存路径。
+5. 修订时基于上一次 prompt 和图片路径继续，不从模糊需求重来。
 
-## Failure Handling
+## 失败处理
 
-- Missing API key: explain which credential is missing and where to place it. Do not ask the user to paste secrets into public issue threads.
-- Unsupported endpoint: verify whether the gateway supports `/v1/images/generations` and `/v1/images/edits`.
-- Model unavailable: list the requested model and suggest checking `/v1/models`.
-- Refusal or moderation: surface the refusal reason at a high level and propose a compliant rewrite.
-- Bad image output: preserve prompt/report, then revise specific prompt fields rather than changing everything.
+- 缺少 API key：说明缺什么、放哪里；不要让用户把密钥贴到公开 issue。
+- 端点不支持：确认 provider 是否支持 `/v1/images/generations` 和 `/v1/images/edits`。
+- 模型不可用：说明请求的模型，建议检查 `/v1/models`。
+- 拒绝或审核失败：概括原因，给出合规改写。
+- 出图质量差：保留 prompt/report，只调整具体字段。

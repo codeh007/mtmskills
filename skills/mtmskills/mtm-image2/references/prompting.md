@@ -1,114 +1,114 @@
-# Prompting
+# Prompt
 
-GPT Image 2 responds best to concrete visual briefs. Prefer structured prompts over short slogans.
+GPT Image 2 更适合具体、结构化的视觉 brief。少用短口号，多写清楚画面、用途和约束。
 
-## Prompt Shape
+## 结构
 
 ```text
-Create [asset type] for [audience/use].
+为[受众/用途]创建[资产类型]。
 
-Subject:
+主体：
 - ...
 
-Composition:
+构图：
 - ...
 
-Style and rendering:
+风格与渲染：
 - ...
 
-Lighting and camera:
+光线与镜头：
 - ...
 
-Text in image:
-- Exact text: "..."
-- Language: ...
-- Placement: ...
+图片文字：
+- 精确文字："..."
+- 语言：...
+- 位置：...
 
-Constraints:
+约束：
 - ...
 
-Output:
-- Aspect ratio/size: ...
-- Quality target: ...
+输出：
+- 比例/尺寸：...
+- 质量目标：...
 ```
 
-## Ask One Useful Question
+## 只问一个关键问题
 
-Ask only when missing information would change the image materially. Examples:
+只有缺失信息会显著改变结果时才问。例如：
 
-- Product image: "Should the product be on pure white ecommerce background or in a lifestyle scene?"
-- Poster: "What exact text must appear on the poster?"
-- Character: "Should identity match a reference image exactly, or is it only style inspiration?"
-- UI mockup: "Is this for mobile, desktop, or a marketing screenshot?"
+- 产品图：纯白电商背景，还是生活方式场景？
+- 海报：必须出现哪些精确文字？
+- 角色：身份要严格匹配参考图，还是只参考风格？
+- UI mockup：移动端、桌面端，还是营销截图？
 
-If the user says "you decide", choose sensible defaults and state them briefly.
+用户说“你决定”时，选择合理默认值并简短说明。
 
-## Template Starters
+## 模板
 
-### Product Studio
+### 产品棚拍
 
 ```text
-Create a high-end studio product photograph of [product] for [brand/use].
-Use a clean [background], realistic materials, accurate product geometry, crisp edges, and controlled reflections.
-Camera: [angle], [lens feel], product centered with subtle shadow.
-Lighting: [softbox/rim/key] lighting, premium commercial retouching.
-Constraints: no extra text, no fake logos, no distorted product shape.
+创建一张高端棚拍产品图，产品是[产品]，用于[品牌/用途]。
+背景：[背景]。材质真实，产品几何准确，边缘清晰，反射受控。
+镜头：[角度]，[镜头感]，产品居中，有细腻投影。
+光线：[柔光箱/轮廓光/主光]，商业级修图质感。
+约束：无额外文字、无虚假 logo、不扭曲产品形状。
 ```
 
-### Poster / Campaign Key Visual
+### 海报 / 主视觉
 
 ```text
-Create a professional campaign key visual for [topic/product/event].
-Main visual: [subject/action].
-Mood: [mood].
-Layout: strong focal point, clean hierarchy, generous whitespace, print-ready composition.
-Text: exact headline "[headline]" and optional subtext "[subtext]"; keep text legible and correctly spelled.
-Style: [photoreal/editorial/illustration/3D/etc.].
+创建一张专业活动主视觉，主题为[主题/产品/活动]。
+主画面：[主体/动作]。
+情绪：[情绪]。
+版式：焦点明确、层级清晰、留白充足、适合印刷。
+文字：精确标题"[headline]"，可选副标题"[subtext]"，文字清晰且拼写正确。
+风格：[写实/编辑摄影/插画/3D 等]。
 ```
 
 ### UI Mockup
 
 ```text
-Create a polished [mobile/desktop] UI mockup for [app/product].
-Screen content: [key sections].
-Visual system: [colors, typography feel, density].
-Use realistic interface details, coherent spacing, consistent icons, and readable text.
-Do not include browser chrome unless requested.
+创建一个精致的[移动端/桌面端] UI mockup，用于[应用/产品]。
+屏幕内容：[关键区域]。
+视觉系统：[颜色、字体感觉、信息密度]。
+界面细节真实，间距一致，图标统一，文字可读。
+除非用户要求，不要加入浏览器外框。
 ```
 
-### Reference Image Edit
+### 参考图编辑
 
 ```text
-Edit the provided image. Preserve [identity/product shape/composition/pose/lighting] exactly.
-Change only [target change].
-Match perspective, shadows, reflections, and color temperature.
-Avoid changing [protected elements].
+编辑提供的图片。严格保持[身份/产品形状/构图/姿势/光线]。
+只改变[目标变化]。
+匹配透视、阴影、反射和色温。
+避免改变[受保护元素]。
 ```
 
-### Diagram / Infographic
+### 图解 / 信息图
 
 ```text
-Create a clear professional infographic explaining [topic].
-Structure: [steps/sections].
-Visual language: clean vector-like diagram, readable labels, consistent arrows, restrained color palette.
-Text labels must be short and spelled exactly.
-Avoid clutter; make hierarchy obvious.
+创建一张清晰的专业信息图，用来解释[主题]。
+结构：[步骤/分区]。
+视觉语言：干净的矢量图解感，可读标签，箭头一致，配色克制。
+文字标签短且拼写准确。
+避免拥挤，层级明显。
 ```
 
-## Quality Rules
+## 质量规则
 
-- Exact text: keep it short; generated text can still fail. For critical copy, generate a clean image with reserved text areas and add final text in a design tool.
-- Faces and brand identity: use reference images when exact continuity matters.
-- Complex diagrams: request fewer labels and larger type.
-- Multi-panel outputs: specify panel count, order, and repeated character/product invariants.
-- For professional delivery, run one draft at lower cost, then one high-quality final.
+- 精确文字要短；关键文案建议先留版位，再用设计工具补最终文字。
+- 人脸、角色、品牌一致性要求高时，使用参考图。
+- 复杂图表减少标签数量，并放大字号。
+- 多面板输出要指定面板数量、顺序和重复元素不变量。
+- 专业交付先低成本草稿，再高质量成稿。
 
-## Negative Prompting
+## 负约束
 
-Use direct constraints instead of long negative lists. Good:
+使用直接约束，不堆长负面词表：
 
 ```text
-No watermark, no extra logo, no misspelled text, no additional people, preserve the original product shape.
+无水印、无多余 logo、无拼错文字、无额外人物、保持原产品形状。
 ```
 
-Avoid overloading the prompt with dozens of unrelated negatives.
+避免加入几十条无关负约束。

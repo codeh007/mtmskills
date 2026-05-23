@@ -1,70 +1,36 @@
-# Setup And Environment
+# 安装与环境
 
-This document is intentionally separate from `SKILL.md` so the main skill stays small. Use it when the user needs installation, Windows, Codex desktop/app, or sub2api configuration help.
+用于确认机器是否能真正调用 GPT Image。配置应遵循 OpenAI 官方环境变量或用户已有的 OpenAI-compatible 配置，不在本技能里固化具体中转域名。
 
-## Environment Types
+## 环境类型
 
 | Environment | What to do |
 | --- | --- |
-| Codex CLI / developer shell | Use `scripts/mtm_image2.py` or `scripts/Invoke-MtmImage2.ps1` directly. |
-| Codex desktop/app with shell access | Ask the agent to run the bundled PowerShell script on Windows, or Python/PowerShell on macOS/Linux. |
-| Codex desktop/app without usable shell | Produce a complete prompt brief and tell the user the API/tool execution is still needed. |
-| Fresh Windows machine | Prefer `Invoke-MtmImage2.ps1`; do not assume Python, Node.js, uv, npm, or Git are installed. |
-| Host has native image tool | Use the host image tool with the final prompt and reference images. Still archive the prompt when possible. |
+| Codex CLI / developer shell | 运行 `scripts/mtm_image2.py`。 |
+| Codex app 有 shell | 让 agent 运行 Python 脚本，并保存 prompt/image/report。 |
+| Codex app 无 shell | 交付完整 brief 与最终 prompt，说明仍需图片 API 执行环境。 |
+| 原生图片工具可用 | 把最终 prompt 与参考图交给宿主工具，仍保留 prompt。 |
 
-## Existing Codex Configuration
+## 运行时要求
 
-Codex user configuration normally lives in:
+- Python 3 标准环境。
+- 可访问 OpenAI Images API 或兼容的图片端点。
+- `OPENAI_API_KEY`，或用户的 Codex/OpenAI-compatible 配置中可读取的 key。
+- `OPENAI_BASE_URL` 可选；未设置时优先读取 Codex provider `base_url`，再默认 `https://api.openai.com/v1`。
 
-- Windows: `%USERPROFILE%\.codex\config.toml`
-- macOS/Linux: `~/.codex/config.toml`
+## Codex 配置
 
-Credentials may live in:
+常见位置：
 
-- `%USERPROFILE%\.codex\auth.json`
-- `~/.codex/auth.json`
-- Process environment variables such as `OPENAI_API_KEY` or `SUB2API_API_KEY`
+- Windows: `%USERPROFILE%\.codex\config.toml`、`%USERPROFILE%\.codex\auth.json`
+- macOS/Linux: `~/.codex/config.toml`、`~/.codex/auth.json`
+- Shell 环境变量：`OPENAI_API_KEY`、`OPENAI_BASE_URL`
 
-If a user already configured Codex to use an OpenAI-compatible provider, reuse that base URL and key. For the current gomtm/sub2api pattern:
+若用户已经配置 OpenAI-compatible provider，复用其 base URL 与 key；不要在技能文档或脚本中写死某个私有网关。
 
-```text
-Base URL: https://sub2api.yuepa8.com
-Chat model: gpt-5.5
-Image model: gpt-image-2
-Auth key location: usually ~/.codex/auth.json key OPENAI_API_KEY, or environment variable
-```
+只确认 key 是否存在，不打印 key 值。
 
-Do not reveal key values. Confirm presence only.
-
-## Fresh Windows Quick Start
-
-PowerShell is available on new Windows installs. The script does not require Python or Node.js.
-
-1. Install or open the latest Codex app.
-2. Confirm API credentials exist in Codex settings or `%USERPROFILE%\.codex\auth.json`.
-3. In a Codex task with workspace shell access, ask:
-
-```text
-Use the mtm-image2 skill. Generate an image with gpt-image-2 via my configured sub2api endpoint. If Windows has no Python or Node.js, use scripts/Invoke-MtmImage2.ps1.
-```
-
-4. If running manually in PowerShell:
-
-```powershell
-$env:OPENAI_API_KEY = "sk-..."
-powershell -ExecutionPolicy Bypass -File .\scripts\Invoke-MtmImage2.ps1 `
-  -Prompt "A premium studio product photo of a matte black smart ring on a white acrylic pedestal" `
-  -BaseUrl "https://sub2api.yuepa8.com" `
-  -Model "gpt-image-2" `
-  -Size "1024x1024" `
-  -Quality "high"
-```
-
-If execution policy blocks scripts, use `-ExecutionPolicy Bypass` for that one command. Do not change machine-wide policy unless the user explicitly asks.
-
-## Codex Desktop User Prompt
-
-For non-programmer users, give Codex app a goal-shaped request:
+## Codex App 提示模板
 
 ```text
 Use mtm-image2 to create a professional image.
@@ -77,34 +43,31 @@ References attached: ...
 Use gpt-image-2, not local drawing code. Save the final prompt and generated file path.
 ```
 
-If the Codex app cannot access a shell or image API, the agent should return a final prompt brief rather than claiming image generation.
+如果 Codex app 不能访问 shell 或图片 API，agent 应返回 prompt brief，而不是声称已生成图片。
 
-## API Base URL Rules
+## API 基址
 
-Scripts accept either root or `/v1` base URLs:
+脚本接受 root 或 `/v1` 形式，会规范化为一个 `/v1`：
 
 - `https://api.openai.com`
 - `https://api.openai.com/v1`
-- `https://sub2api.yuepa8.com`
-- `https://sub2api.yuepa8.com/v1`
 
-The script normalizes to one `/v1` prefix.
+OpenAI-compatible provider 也应遵循同样规则。
 
-## Environment Variables
+## 环境变量
 
-Preferred order:
+优先级：
 
 1. Explicit command flags.
 2. `OPENAI_API_KEY`.
-3. `SUB2API_API_KEY`.
-4. `~/.codex/auth.json` field `OPENAI_API_KEY`, if the script supports reading it.
+3. `~/.codex/auth.json` 中的 OpenAI-compatible key 字段。
 
 Optional:
 
 ```text
-OPENAI_BASE_URL=https://sub2api.yuepa8.com
+OPENAI_BASE_URL=https://api.openai.com/v1
 OPENAI_IMAGE_MODEL=gpt-image-2
 MTM_IMAGE2_OUTPUT_DIR=mtm-image2-output
 ```
 
-Do not store secrets in `templates/config.env.example`; it is a shape-only file.
+不要把密钥写入仓库、技能目录、issue 评论或截图。

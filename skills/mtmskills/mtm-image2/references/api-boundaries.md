@@ -1,54 +1,54 @@
-# API Boundaries
+# API 边界
 
-## Core Boundary
+## 核心边界
 
-`gpt-5.5` can understand text and image inputs in a Codex-style conversation. Actual image generation/editing must route to an image capability such as `gpt-image-2` through:
+对话模型可以理解文字和图片输入。真实图片生成/编辑必须路由到 GPT Image 能力，例如 `gpt-image-2`：
 
 - `/v1/images/generations`
 - `/v1/images/edits`
-- A Responses API image generation tool, when the host supports it
+- 宿主支持时，也可用 Responses API image generation tool
 
-Do not call local drawing libraries, HTML canvas, SVG renderers, matplotlib, PIL drawing, or screenshot tricks and present those as GPT Image 2 output.
+不要调用本地绘图库、HTML canvas、SVG 渲染器、matplotlib、PIL 绘图或截图技巧，并把它们当作 GPT Image 2 输出。
 
-## Endpoint Selection
+## 端点选择
 
-| User request | Endpoint |
+| 用户请求 | 端点 |
 | --- | --- |
-| "Generate/create/draw an image from this description" | `/v1/images/generations` |
-| "Use this image as reference" | `/v1/images/edits` |
-| "Change the background/object/style of this image" | `/v1/images/edits` |
-| "Only change this part" with a mask | `/v1/images/edits` with mask |
+| 从文字生成图片 | `/v1/images/generations` |
+| 使用参考图生成新图 | `/v1/images/edits` |
+| 修改背景、对象或风格 | `/v1/images/edits` |
+| 用 mask 局部修改 | `/v1/images/edits` + mask |
 
-## OpenAI-Compatible Gateway Expectations
+## OpenAI-Compatible 要求
 
-An OpenAI-compatible gateway must support more than chat completions. For this skill, verify:
+OpenAI-compatible 网关必须支持图片端点，而不只是 chat completions。需确认：
 
 - `POST /v1/images/generations`
 - `POST /v1/images/edits`
-- multipart form upload for edits
+- edits 支持 multipart form 上传
 - `model=gpt-image-2`
-- base64 image response in `data[0].b64_json`, or an image URL if the script supports downloading it
+- 返回 `data[0].b64_json`，或返回脚本可下载的图片 URL
 
-If the gateway only supports `/v1/chat/completions` or `/v1/responses`, this skill may still write prompts but cannot guarantee actual `gpt-image-2` output.
+如果网关只支持 `/v1/chat/completions` 或 `/v1/responses`，本技能仍可写 prompt，但不能保证真实 `gpt-image-2` 出图。
 
-## Common Errors
+## 常见错误
 
-| Symptom | Likely cause | Action |
+| 现象 | 可能原因 | 处理 |
 | --- | --- | --- |
-| 401/403 | Missing or wrong key | Check env/auth location; do not print the key. |
-| 404 on `/images/...` | Gateway lacks image endpoints or base URL is wrong | Try root base URL without duplicate `/v1`; check gateway docs. |
-| "model not found" | `gpt-image-2` not enabled upstream | Query `/v1/models` or choose an enabled GPT Image model. |
-| Multipart failure | Using JSON for edits | Use multipart form with `image[]`/`image` and optional `mask`. |
-| No `b64_json` | Gateway returns URL only | Use script URL download support or inspect response JSON. |
-| Bad text rendering | Model limitation or too much text | Shorten text, increase quality, or add final text in a design tool. |
+| 401/403 | key 缺失或错误 | 检查环境变量或 auth 文件，不打印 key。 |
+| `/images/...` 404 | 网关不支持图片端点或 base URL 错误 | 避免重复 `/v1`，检查 provider 文档。 |
+| `model not found` | 上游未启用 `gpt-image-2` | 查询 `/v1/models` 或选择已启用的 GPT Image 模型。 |
+| multipart 失败 | edits 用了 JSON | 使用 multipart form，字段为 `image[]`/`image` 和可选 `mask`。 |
+| 没有 `b64_json` | 网关只返回 URL | 使用脚本 URL 下载能力或检查响应 JSON。 |
+| 文字渲染差 | 模型限制或文字太多 | 缩短文字、提高质量，或在设计工具中补最终文字。 |
 
-## Verification Criteria
+## 验收
 
-An image task is only complete when:
+图片任务完成条件：
 
-1. The final prompt is saved or shown.
-2. The command/API call completed successfully.
-3. The output image file path or host image artifact is reported.
-4. The output is known to come from `gpt-image-2` or an explicitly compatible GPT Image model.
+1. 已保存或展示最终 prompt。
+2. 命令/API 调用成功。
+3. 已报告图片文件路径或宿主图片产物。
+4. 已确认输出来自 `gpt-image-2` 或用户明确指定的兼容 GPT Image 模型。
 
-For prompt-only mode, say "prompt prepared" rather than "image generated".
+prompt-only 模式只能说“prompt 已准备”，不能说“图片已生成”。
