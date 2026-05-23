@@ -69,6 +69,7 @@ web_modules/
 .env
 .env.*
 !.env.example
+!skills/mtmskills/gomtm-codex-dev/templates/.env
 
 # parcel-bundler cache (https://parceljs.org/)
 .cache
