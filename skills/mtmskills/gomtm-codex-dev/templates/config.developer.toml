@@ -1,3 +1,4 @@
+model_provider = "sub2api"
 model = "gpt-5.5"
 review_model = "gpt-5.5"
 model_reasoning_effort = "medium"
@@ -7,43 +8,62 @@ windows_wsl_setup_acknowledged = true
 model_context_window = 1000000
 model_auto_compact_token_limit = 900000
 
+[model_providers.sub2api]
+name = "sub2api.yuepa8.com"
+base_url = "https://sub2api.yuepa8.com"
+wire_api = "responses"
+env_key = "SUB2API_API_KEY"
+request_max_retries = 4
+stream_max_retries = 10
+stream_idle_timeout_ms = 300000
+
 [profiles."gpt-5.5"]
+model_provider = "sub2api"
 model = "gpt-5.5"
 model_reasoning_effort = "medium"
 
 [profiles."gpt-5.4"]
+model_provider = "sub2api"
 model = "gpt-5.4"
 model_reasoning_effort = "medium"
 
 [profiles."gpt-5.4-2026-03-05"]
+model_provider = "sub2api"
 model = "gpt-5.4-2026-03-05"
 model_reasoning_effort = "medium"
 
 [profiles."gpt-5.4-mini"]
+model_provider = "sub2api"
 model = "gpt-5.4-mini"
 model_reasoning_effort = "medium"
 
 [profiles."gpt-5.3-codex"]
+model_provider = "sub2api"
 model = "gpt-5.3-codex"
 model_reasoning_effort = "medium"
 
 [profiles."gpt-5.2"]
+model_provider = "sub2api"
 model = "gpt-5.2"
 model_reasoning_effort = "medium"
 
 [profiles."gpt-5.2-2025-12-11"]
+model_provider = "sub2api"
 model = "gpt-5.2-2025-12-11"
 model_reasoning_effort = "medium"
 
 [profiles."gpt-5.2-chat-latest"]
+model_provider = "sub2api"
 model = "gpt-5.2-chat-latest"
 model_reasoning_effort = "medium"
 
 [profiles."gpt-5.2-pro"]
+model_provider = "sub2api"
 model = "gpt-5.2-pro"
 model_reasoning_effort = "medium"
 
 [profiles."gpt-5.2-pro-2025-12-11"]
+model_provider = "sub2api"
 model = "gpt-5.2-pro-2025-12-11"
 model_reasoning_effort = "medium"
 

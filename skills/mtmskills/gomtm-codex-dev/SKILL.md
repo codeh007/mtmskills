@@ -38,7 +38,9 @@ codex doctor --summary
 - 主配置：`~/.codex/config.toml`
 - 登录凭据：`~/.codex/auth.json`
 - 项目级配置：`<project>/.codex/config.toml`
-- 模板：`templates/config.toml`、`templates/auth.json`
+- 标准模板：`templates/config.toml`
+- 开发者中转模板：`templates/config.developer.toml`
+- API key 模板：`templates/auth.json`
 
 重要约束：`model_provider`、`model_providers`、`profiles`、`openai_base_url` 等 provider/auth 级配置必须放在用户级 `~/.codex/config.toml`。如果写进项目级 `.codex/config.toml`，新版本 Codex 会加载但提示 unsupported project-local config keys，并忽略这些 key。
 
@@ -51,6 +53,12 @@ cp auth.json "auth.$(date +%Y%m%d-%H%M%S).json"
 ```
 
 模板文件位于 `templates/`，需要时直接复制到本机 `~/.codex/` 再改本地值，不在正文重复展开完整配置。
+
+模板选择规则：
+
+- 普通 Codex/Windows 用户复制 `templates/config.toml`。这个模板不依赖 `SUB2API_API_KEY`，应当能配合 Codex 官方登录或既有 OpenAI API 登录直接启动。
+- 需要使用 `sub2api` 中转模型的开发者复制 `templates/config.developer.toml`，并先确保当前 shell 或系统环境变量里存在 `SUB2API_API_KEY`。
+- 只有一个 Codex CLI 配置技能：保留 `gomtm-codex-dev`，不要再新增同类技能；其他技能只能链接到这里，不应各自维护 Codex 主配置模板。
 
 ## OpenAI-compatible provider
 
@@ -122,7 +130,18 @@ codex debug models | jq -r '.models[] | select(.visibility == "list") | .slug'
 
 ## 标准配置
 
-推荐使用一个 provider 加多个 profile。完整模板见 `templates/config.toml`，复制后再按本机环境调整。
+普通用户默认使用 `templates/config.toml`。它只设置模型、profile、sandbox、网络和 TUI 状态，不覆盖 `model_provider`，也不绑定私有中转服务环境变量。
+
+复制后至少执行一次：
+
+```bash
+codex doctor --summary
+codex -p gpt-5.5
+```
+
+## 开发者中转配置
+
+需要使用 `sub2api` 时，使用 `templates/config.developer.toml`。该模板使用一个 provider 加多个 profile，复制后再按本机环境调整。
 
 环境变量方式：
 
@@ -156,7 +175,8 @@ Windows 下的配置结构和 Linux 基本一致，只有少量差异需要单�
 - `~/.codex/` 通常对应 `%USERPROFILE%\.codex\`
 - 备份命令可改成 PowerShell 的 `Copy-Item`
 - 如果在 WSL 里使用 Codex，保留 `windows_wsl_setup_acknowledged = true`
-- 直接在 Windows 终端里用时，先确认 `SUB2API_API_KEY` 等环境变量对当前会话可见
+- 直接在 Windows 终端里用标准模板时，不需要 `SUB2API_API_KEY`
+- 直接在 Windows 终端里用开发者中转模板时，先确认 `SUB2API_API_KEY` 等环境变量对当前会话可见
 
 ## 切换与验证
 
