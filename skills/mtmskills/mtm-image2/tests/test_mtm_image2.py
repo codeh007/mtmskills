@@ -5,17 +5,18 @@ from __future__ import annotations
 import base64
 import importlib.util
 import os
+import sys
 import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
 
 
-SCRIPT = Path(__file__).resolve().parents[1] / "scripts" / "mtm_image2.py"
-SPEC = importlib.util.spec_from_file_location("mtm_image2", SCRIPT)
+SCRIPT = Path(__file__).resolve().parents[1] / "scripts" / "mtm_image_gen.py"
+SPEC = importlib.util.spec_from_file_location("mtm_image_gen", SCRIPT)
 assert SPEC is not None and SPEC.loader is not None
-mtm_image2 = importlib.util.module_from_spec(SPEC)
-SPEC.loader.exec_module(mtm_image2)
+mtm_image_gen = importlib.util.module_from_spec(SPEC)
+SPEC.loader.exec_module(mtm_image_gen)
 
 
 class StreamingImagesTest(unittest.TestCase):
@@ -36,7 +37,7 @@ env_key = "RELAY_API_KEY"
             (codex_home / "config.toml").write_text(config, encoding="utf-8")
 
             with patch.dict(os.environ, {"CODEX_HOME": str(codex_home)}, clear=True):
-                self.assertEqual(mtm_image2.normalize_base_url(None), "https://relay.example.com/v1")
+                self.assertEqual(mtm_image_gen.normalize_base_url(None), "https://relay.example.com/v1")
 
     def test_get_api_key_uses_openai_api_key_before_provider_env_key(self) -> None:
         config = """
@@ -57,7 +58,7 @@ env_key = "RELAY_API_KEY"
                 "OPENAI_API_KEY": "openai-key",
             }
             with patch.dict(os.environ, env, clear=True):
-                self.assertEqual(mtm_image2.get_api_key(None), "openai-key")
+                self.assertEqual(mtm_image_gen.get_api_key(None), "openai-key")
 
     def test_get_api_key_falls_back_to_provider_env_key(self) -> None:
         config = """
@@ -77,7 +78,7 @@ env_key = "RELAY_API_KEY"
                 "RELAY_API_KEY": "relay-key",
             }
             with patch.dict(os.environ, env, clear=True):
-                self.assertEqual(mtm_image2.get_api_key(None), "relay-key")
+                self.assertEqual(mtm_image_gen.get_api_key(None), "relay-key")
 
     def test_provider_headers_and_query_params_resolve_from_codex_config(self) -> None:
         config = """
@@ -102,14 +103,14 @@ api-version = "2026-05-23"
 
             with patch.dict(os.environ, {"CODEX_HOME": str(codex_home), "RELAY_HEADER": "env-value"}, clear=True):
                 self.assertEqual(
-                    mtm_image2.provider_headers(),
+                    mtm_image_gen.provider_headers(),
                     {"X-Static": "static-value", "X-Env": "env-value"},
                 )
-                self.assertEqual(mtm_image2.provider_query_params(), {"api-version": "2026-05-23"})
+                self.assertEqual(mtm_image_gen.provider_query_params(), {"api-version": "2026-05-23"})
                 self.assertEqual(
-                    mtm_image2.append_query_params(
+                    mtm_image_gen.append_query_params(
                         "https://relay.example.com/v1/images/generations",
-                        mtm_image2.provider_query_params(),
+                        mtm_image_gen.provider_query_params(),
                     ),
                     "https://relay.example.com/v1/images/generations?api-version=2026-05-23",
                 )
@@ -121,7 +122,7 @@ api-version = "2026-05-23"
             "Authorization: Bearer abcdef1234567890"
         )
 
-        redacted = mtm_image2.redact_secret_fragments(message)
+        redacted = mtm_image_gen.redact_secret_fragments(message)
 
         self.assertNotIn("1234567890abcdef", redacted)
         self.assertNotIn("abcdef1234567890", redacted)
@@ -129,7 +130,7 @@ api-version = "2026-05-23"
         self.assertIn("Bearer ***REDACTED***", redacted)
 
     def test_build_generation_payload_includes_streaming_options(self) -> None:
-        payload = mtm_image2.build_generation_payload(
+        payload = mtm_image_gen.build_generation_payload(
             model="gpt-image-2",
             prompt="test image",
             size="2048x2048",
@@ -139,7 +140,6 @@ api-version = "2026-05-23"
             output_compression=80,
             background=None,
             moderation="auto",
-            stream=True,
             partial_images=2,
         )
 
@@ -153,7 +153,7 @@ api-version = "2026-05-23"
     def test_parse_sse_events_ignores_done_and_comments(self) -> None:
         raw = b""": keepalive\n\nevent: image_generation.partial_image\ndata: {\"type\":\"image_generation.partial_image\",\"partial_image_index\":0}\n\ndata: [DONE]\n\n"""
 
-        events = list(mtm_image2.parse_sse_events(raw.splitlines()))
+        events = list(mtm_image_gen.parse_sse_events(raw.splitlines()))
 
         self.assertEqual(events, [{"type": "image_generation.partial_image", "partial_image_index": 0}])
 
@@ -166,7 +166,7 @@ api-version = "2026-05-23"
 
         with tempfile.TemporaryDirectory() as tmp:
             output = Path(tmp) / "images" / "demo.png"
-            written = mtm_image2.save_streamed_image_events(events, output)
+            written = mtm_image_gen.save_streamed_image_events(events, output)
 
             self.assertEqual(len(written), 2)
             self.assertTrue(written[0].endswith("demo-partial-0.png"))
@@ -184,10 +184,56 @@ api-version = "2026-05-23"
 
         with tempfile.TemporaryDirectory() as tmp:
             output = Path(tmp) / "images" / "demo.png"
-            written = mtm_image2.save_streamed_image_events(events, output)
+            written = mtm_image_gen.save_streamed_image_events(events, output)
 
             self.assertTrue(str(output) in written)
             self.assertEqual(output.read_bytes(), b"final")
+
+    def test_resolve_output_paths_requires_explicit_image_output(self) -> None:
+        args = type(
+            "Args",
+            (),
+            {
+                "output": None,
+                "prompt_output": None,
+                "report_output": None,
+                "format": "png",
+            },
+        )()
+
+        with self.assertRaises(SystemExit) as err:
+            mtm_image_gen.resolve_output_paths(args)
+
+        self.assertIn("--output", str(err.exception))
+
+    def test_resolve_output_paths_derives_prompt_and_report_from_output(self) -> None:
+        args = type(
+            "Args",
+            (),
+            {
+                "output": "/tmp/demo/out.png",
+                "prompt_output": None,
+                "report_output": None,
+                "format": "png",
+            },
+        )()
+
+        paths = mtm_image_gen.resolve_output_paths(args)
+
+        self.assertEqual(paths.image, Path("/tmp/demo/out.png"))
+        self.assertEqual(paths.prompt, Path("/tmp/demo/out.prompt.md"))
+        self.assertEqual(paths.report, Path("/tmp/demo/out.report.json"))
+
+    def test_parse_args_has_no_image_edit_or_output_dir_options(self) -> None:
+        with patch.object(sys, "argv", ["mtm_image_gen.py", "--help"]):
+            with self.assertRaises(SystemExit) as err:
+                mtm_image_gen.parse_args()
+
+        self.assertEqual(err.exception.code, 0)
+        parser_actions = {action.dest for action in mtm_image_gen.build_parser()._actions}
+        self.assertNotIn("image", parser_actions)
+        self.assertNotIn("mask", parser_actions)
+        self.assertNotIn("output_dir", parser_actions)
 
 
 if __name__ == "__main__":
