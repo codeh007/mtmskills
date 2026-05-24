@@ -1,6 +1,6 @@
 ---
 name: gomtm-hermes
-description: Use when developing, configuring, deploying, debugging, or aligning gomtm, mtmai, gomtmui, mtmhermes, or customer servers with official NousResearch Hermes Agent, including dashboard, gateway, providers, Telegram, Docker, Kanban, and VPS or Termux handoff.
+description: Use when developing, configuring, deploying, debugging, or aligning gomtm, mtmai, gomtmui, mtmhermes, or customer servers with official NousResearch Hermes Agent, including dashboard, gateway, providers, Telegram, Docker, Kanban, goals, and VPS or Termux handoff.
 version: 1.1.0
 author: gomtm
 license: MIT
@@ -19,14 +19,11 @@ metadata:
 ## 何时使用
 
 - 配置、部署、升级、验证或排障 Hermes Agent。
-- 将 gomtm、mtmai、gomtmui、mtmhermes 与 Hermes dashboard、gateway、profiles、providers、Telegram、Kanban 对齐。
+- 将 gomtm、mtmai、gomtmui、mtmhermes 与 Hermes dashboard、gateway、profiles、providers、Telegram、Kanban、goals 对齐。
 - 在 Linux VPS、Android/Termux、容器或受控客户环境中交付 Hermes。
-- 诊断 Hermes 长任务停止、空回复、provider 鉴权、上下文压缩、gateway、Telegram、dashboard plugin。
-- 处理 Hermes `/goal`、`/subgoal`、goal judge 或自动 continuation。
+- 诊断 Hermes 长任务停止、空回复、provider 鉴权、上下文压缩、gateway、Telegram、dashboard plugin、goal continuation。
 
 ## 官方资料优先
-
-执行前优先核对当前官方文档和本机源码：
 
 - Docs: `https://hermes-agent.nousresearch.com/docs/`
 - Configuration: `https://hermes-agent.nousresearch.com/docs/user-guide/configuration`
@@ -43,7 +40,7 @@ metadata:
 - `custom_providers:` 是自定义 provider 选择器入口；模板使用 `custom_providers` 以便 `custom:<slug>` 选择。
 - `config.yaml` 保存结构和 `${VAR}` 引用；`.env` / service env / secret store 保存 secret。
 - 新会话或 gateway restart 才会稳定读取配置变化。
-- 需要 TUI 时显式运行 `hermes --tui`；不要在共享 `$HERMES_HOME/.env` 默认写 `HERMES_TUI=1`，否则非 TTY worker/cron/gateway 任务会失败。
+- 需要 TUI 时显式运行 `hermes --tui`；不要在共享 `$HERMES_HOME/.env` 默认写 `HERMES_TUI=1`。
 
 ## gomtm 边界
 
@@ -53,43 +50,31 @@ metadata:
 4. `mtmhermes`：专用 Hermes 容器、运行态数据、私有配置、交付脚本。
 5. 官方 Hermes：provider、模型路由、credential pool、memory、skills、tools、session DB、Kanban、cron、proxy、gateway。
 
-## 配置模板
+## 配置规则
 
-只维护一套配置入口：
+- 使用 `templates/config.yaml` 和 `templates/env.example` 作为唯一可复制起点；复制前备份真实 `config.yaml` 和 `.env`。
+- `context_length` 用 plain integer，并在 `model`、`custom_providers[].models`、`model_aliases`、`auxiliary.compression` 中一致。
+- 不把 `model.max_tokens`、低 `compression.threshold` 或 fallback provider 写成默认修复；先用真实命令验证当前 Hermes 版本、provider、base_url、context metadata 与工具调用行为。
+- `security.redact_secrets: true` 保持开启；不要用 `HERMES_REDACT_SECRETS=false` 覆盖。
+- 自定义 OpenAI-compatible endpoint 使用 `OPENAI_BASE_URL` / `OPENAI_API_KEY`。
+- 修改配置后开新 session；gateway 场景重启 gateway。
 
-- `templates/config.yaml`：完整可复制的 `~/.hermes/config.yaml` 起点，包含 custom provider、model alias、compression、secret redaction、skills、auxiliary、可选 GitNexus MCP 注释块。
-- `templates/env.example`：完整 `.env` 起点，包含 OpenAI-compatible secret、可选 Telegram、可选 GitNexus 调参注释。
+## Provider / 长上下文排障
 
-使用规则：
-
-1. 复制模板前先备份真实 `config.yaml` 和 `.env`。
-2. 用注释启用可选分支，不新增 default/developer/custom/telegram 分散模板。
-3. `context_length` 用 plain integer（如 `1050000`），并在 `model`、`custom_providers[].models`、`model_aliases`、`auxiliary.compression` 中一致。
-4. 不要把 `model.max_tokens` 或更低的 `compression.threshold` 写成默认修复。`model.max_tokens` 是单次输出预算；在本机 v0.14.0 现场加入 `model.max_tokens: 32768` 并把 `compression.threshold` 改为 `0.25` 后，TUI context 显示变成 0 且工具调用行为异常，已回滚。
-5. `security.redact_secrets: true` 保持开启；不要用 `HERMES_REDACT_SECRETS=false` 覆盖。
-6. 自定义 OpenAI-compatible endpoint 使用 `OPENAI_BASE_URL` / `OPENAI_API_KEY`。
-7. 修改后开新 session；gateway 场景重启 gateway。
-
-## 自定义 provider / 长上下文排障
-
-详见 `references/hermes-long-context-empty-response.md`。快速判断：
+详见 `references/hermes-long-context-empty-response.md`。先收集信号：
 
 ```bash
 grep -Ei "pending tool result|Empty response|No fallback available|AuthenticationError|context|Provider:|Response truncated" ~/.hermes/logs/errors.log | tail -80
 HERMES_TUI=0 hermes chat --quiet -q '只输出 OK'
 ```
 
-关键事实：
+判断规则：
 
-- Hermes 的 `model.context_length` 是总上下文窗口（输入 + 输出），影响上下文压缩和窗口估算；`model.max_tokens` 是单次 assistant 输出预算，长 `tool_calls[].function.arguments` 也算输出。二者不能互相替代。
-- `hermes config set model.max_tokens 32768` 是 Hermes 配置命令，不是 monkey patch；但在当前 v0.14.0 + custom provider 现场不能作为默认修复使用。若测试它，必须先备份，并在新 session 中确认 context 计数、provider、base_url 和工具调用行为都正常。
-- `Response truncated due to output length limit` 出现在复杂任务中，尤其是一次性生成很长的 `write_file` / `patch` 参数时，优先分块写入、压缩或新开 session；不要直接把 `max_tokens` / `threshold` 变更写入模板。
-- `compression.threshold` 乘以 `model.context_length` 是自动压缩触发线，但本机实测把 `threshold` 从 `0.5` 改为 `0.25` 会引入 TUI context 显示 0 等异常。此方向只作为待复现假设，不再作为推荐配置。
-- Hermes v0.14.0 已有上游 bug `NousResearch/hermes-agent#5358`：gateway / CLI / executor 等路径可能没有一致使用 `model.provider` / `model.base_url`，在存在 OpenRouter 或其他环境变量时发生 provider 路由漂移。排障时必须核对运行时真实 provider/base_url，而不是只看 `config.yaml`。
-- Hermes 未知模型或探测失败 fallback 可能显示 `256K` / `256,000`；这不是 gpt-5.5 的推荐窗口。
-- 官方/公开元数据确认 gpt-5.5 窗口为 `1050000` 时，模板应填写 `1050000`，不要只改一处。
-- `/model` 切到 custom provider 时，官方源码已有回归用例要求读取 `custom_providers[].models.<model>.context_length`，否则会显示 128K/256K fallback。
-- `Empty response` + `No fallback available` 通常是模型/中转在长工具链后返回空内容；无 fallback 时 turn 会停在 pending tool result。
+- `model.context_length` 是输入+输出总窗口；`model.max_tokens` 是单次 assistant 输出预算，包含 `tool_calls[].function.arguments`。二者不能互相替代。
+- `Response truncated due to output length limit` 在复杂长任务中优先按“短骨架 + 多次 patch”、`/compress` 或新 session 处理。
+- Hermes v0.14.0 存在上游 `NousResearch/hermes-agent#5358` 指向的 provider/base_url 路由漂移风险；必须核对日志中的真实 `provider=`、`base_url=`、`model=`，不要只看 `config.yaml`。
+- 未知模型或探测失败 fallback 可能显示 `256K` / `256000`；这不是 gpt-5.5 的推荐窗口。
+- `Empty response` + `No fallback available` 通常表示模型/中转在长工具链后返回空内容，且没有可用 fallback 接管。
 - `Provider: openrouter` + 自定义模型名通常是 provider override、默认 provider、alias 或 fallback 配置错误。
 
 必要验证：
@@ -167,35 +152,15 @@ Telegram `.env` 使用数字 user/chat ID；群组 chat ID 通常为负数。交
 
 Termux 使用官方 installer。失败时补齐 `python`、`git`、`clang`、`rust`、`make`、`pkg-config`、`libffi`、`openssl`、`ca-certificates`、`curl`。云手机操作结合 `using-vmoscloud` / `gomtm-adb-operate`。
 
-## GitNexus MCP
+## 专题参考
 
-开发者场景启用 `templates/config.yaml` 中的 `mcp_servers.gitnexus` 注释块，细节见 `references/hermes-gitnexus-mcp.md`。
-
-```bash
-cd <repo-root>
-npx -y gitnexus@latest analyze
-hermes mcp add gitnexus --command npx --args -y gitnexus@latest mcp
-hermes mcp test gitnexus
-hermes --tui
-```
-
-从 repo 根目录启动 Hermes，或设置 `TERMINAL_CWD=<repo-root>`；不要用 `--ignore-rules` 验证规则注入。
-
-## Kanban / gomtmui Web UI
-
-- Web UI parity：`references/hermes-kanban-gomtmui-parity.md`
-- runtime 边界：`references/hermes-kanban-runtime-boundary.md`
-- TUI env 坑：`references/kanban-worker-tui-env.md`
-
-关键规则：`hermes gateway run` 启动 messaging gateway、cron scheduler、Kanban dispatcher；`hermes dashboard` 提供 Web UI；gomtmui 优先承载官方 Kanban plugin bundle，不复制 Kanban 业务逻辑。
-
-## Persistent Goals
-
-涉及 `/goal`、`/subgoal`、goal judge、自动 continuation 时读 `references/hermes-persistent-goals.md`。要点：goal 状态在 `SessionDB.state_meta`，每轮后由 auxiliary goal judge 决定 done/continue；gateway/Telegram continuation 走 adapter FIFO，真实用户消息优先。
+- GitNexus MCP：`references/hermes-gitnexus-mcp.md`
+- Kanban / gomtmui Web UI：`references/hermes-kanban-gomtmui-parity.md`、`references/hermes-kanban-runtime-boundary.md`、`references/kanban-worker-tui-env.md`
+- Persistent Goals：`references/hermes-persistent-goals.md`
 
 ## 常见坑
 
-1. provider / endpoint / alias 不一致。
+1. provider / endpoint / alias 不一致，或未核对真实运行时 provider/base_url。
 2. secret 写进 docs、issue、commit。
 3. 服务环境默认 `HERMES_TUI=1`。
 4. 修改配置后继续用旧 session。
@@ -206,9 +171,7 @@ hermes --tui
 9. 把 checkout 绝对路径当可移植文档。
 10. `~/.agents/skills` 被误认为 Hermes 默认目录。
 11. `skills.external_dirs` 写成字符串。
-12. 只在一个配置路径设置 `context_length`。
-13. `context_length` 与 `max_tokens` 混用：前者是总窗口，后者是单次输出预算。
-14. 未核对真实运行时 provider/base_url；v0.14.0 存在上游配置解析/路由漂移问题（见 `NousResearch/hermes-agent#5358`）。
+12. 只在一个配置路径设置 `context_length`，或混用 `context_length` 与 `max_tokens`。
 
 ## 验收清单
 
@@ -220,14 +183,3 @@ hermes --tui
 - [ ] gateway status/logs 已按场景检查。
 - [ ] 相关 repo 测试已运行。
 - [ ] 技能目录/外部技能配置已按场景验证。
-
-## 支持文件
-
-- `templates/config.yaml`
-- `templates/env.example`
-- `references/hermes-long-context-empty-response.md`
-- `references/hermes-kanban-runtime-boundary.md`
-- `references/hermes-kanban-gomtmui-parity.md`
-- `references/kanban-worker-tui-env.md`
-- `references/hermes-gitnexus-mcp.md`
-- `references/hermes-persistent-goals.md`
