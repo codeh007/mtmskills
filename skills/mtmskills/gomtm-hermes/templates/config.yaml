@@ -17,6 +17,7 @@ model:
   base_url: ${OPENAI_BASE_URL}
   api_key: ${OPENAI_API_KEY}
   api_mode: chat_completions
+  # Total context window (input + output) used for compression/window accounting.
   context_length: 1050000
   models:
     gpt-5.5:
