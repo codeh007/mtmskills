@@ -16,58 +16,7 @@ grep -Ei "Empty response|pending tool result|No fallback available|context|Provi
 cp ~/.hermes/config.yaml ~/.hermes/config.yaml.$(date +%Y%m%d_%H%M%S).bak
 ```
 
-2. 对自定义 OpenAI-compatible endpoint 使用真实稳定窗口，并保持所有路径一致。若供应商公开元数据/`/models` 明确支持百万级窗口（例如 OpenRouter `openai/gpt-5.5` 为 `1050000`），不要下调成 256K；只有稳定窗口未知或 endpoint 实测不稳时才临时保守下调：
-
-```yaml
-model:
-  provider: custom
-  default: <model-id>
-  model: <model-id>
-  base_url: ${OPENAI_BASE_URL}
-  api_key: ${OPENAI_API_KEY}
-  api_mode: chat_completions
-  context_length: <context-length>
-  models:
-    <model-id>:
-      context_length: <context-length>
-
-custom_providers:
-  - name: <Provider Display Name>
-    base_url: ${OPENAI_BASE_URL}
-    api_key: ${OPENAI_API_KEY}
-    api_mode: chat_completions
-    model: <model-id>
-    context_length: <context-length>
-    models:
-      <model-id>:
-        context_length: <context-length>
-
-model_aliases:
-  <model-id>:
-    provider: custom
-    model: <model-id>
-    base_url: ${OPENAI_BASE_URL}
-    api_key: ${OPENAI_API_KEY}
-    api_mode: chat_completions
-    context_length: <context-length>
-
-compression:
-  enabled: true
-  threshold: 0.5
-
-security:
-  redact_secrets: true
-
-auxiliary:
-  compression:
-    provider: custom
-    model: <model-id>
-    base_url: ${OPENAI_BASE_URL}
-    api_key: ${OPENAI_API_KEY}
-    context_length: <context-length>
-    timeout: 180
-    extra_body: {}
-```
+2. 对自定义 OpenAI-compatible endpoint 使用真实稳定窗口，并保持所有路径一致。若供应商公开元数据/`/models` 明确支持百万级窗口（例如 gpt-5.5 为 `1050000`），不要下调成 256K；只有稳定窗口未知或 endpoint 实测不稳时才临时保守下调。配置细节以 `templates/config.yaml` 为权威模板，正文和本文档不再重复完整 YAML。
 
 3. 保持 `security.redact_secrets: true`，不要用 `HERMES_REDACT_SECRETS=false` 覆盖；否则 Hermes 会提示 secrets 可能进入 chat output、session JSONs 和 logs。
 

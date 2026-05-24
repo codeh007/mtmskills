@@ -1,9 +1,14 @@
 # Hermes Agent configuration template.
-# Copy the relevant sections into ~/.hermes/config.yaml.
 #
-# Replace <model-id>, <provider-name>, and <context-length>.
-# Use a plain integer for context_length, for example 1050000, not "1.05M" or "256K".
-# Keep secrets in ~/.hermes/.env, profile env, container secrets, or service env.
+# This file is intended to be a complete starting point for ~/.hermes/config.yaml.
+# 1. Back up the existing config first.
+# 2. Copy this file to ~/.hermes/config.yaml.
+# 3. Replace <model-id>, <provider-name>, and <context-length>.
+# 4. Put secrets in ~/.hermes/.env or service/container secrets, not here.
+#
+# context_length must be a plain integer, for example 1050000.
+# Do not write "1.05M" or "256K". Hermes treats invalid values as missing and
+# may fall back to auto/probe metadata such as 256000.
 
 model:
   provider: custom
@@ -28,6 +33,8 @@ custom_providers:
       "<model-id>":
         context_length: <context-length>
 
+# Keeps `hermes -z ... --model <model-id>` on the custom endpoint even when
+# --provider is omitted.
 model_aliases:
   "<model-id>":
     provider: custom
@@ -37,6 +44,8 @@ model_aliases:
     api_mode: chat_completions
     context_length: <context-length>
 
+# Keep empty unless a real fallback provider is fully configured. A broken
+# fallback can accidentally route custom models to OpenRouter/OpenAI and fail.
 fallback_providers: []
 
 compression:
@@ -44,14 +53,16 @@ compression:
   threshold: 0.5
 
 security:
-  # Keep this true for normal use. When false, Hermes prints a startup warning
-  # because API keys and tokens may enter chat output, session JSONs, and logs.
+  # Keep true for normal use. If false, Hermes warns that API keys and tokens may
+  # enter chat output, session JSONs, and logs.
   redact_secrets: true
 
 skills:
-  # Optional shared skill directories. Hermes native skills remain in ~/.hermes/skills.
+  # Optional shared skill dirs. Hermes native skills remain in ~/.hermes/skills.
+  # Remove dirs you do not use. This must be a YAML list, not a quoted string.
   external_dirs:
     - ~/.agents/skills
+    - ~/.config/agents/skills
   template_vars: true
   inline_shell: false
 
@@ -75,7 +86,12 @@ auxiliary:
     timeout: 30
     extra_body: {}
 
-# Developer-only GitNexus MCP. Uncomment when working in indexed code repos.
+# Optional Telegram gateway settings live in .env, not config.yaml:
+# TELEGRAM_BOT_TOKEN=<redacted>
+# TELEGRAM_ALLOWED_USERS=<numeric-user-id>
+# TELEGRAM_GROUP_ALLOWED_CHATS=<negative-chat-id>
+
+# Optional developer-only GitNexus MCP. Uncomment only in indexed code repos.
 # mcp_servers:
 #   gitnexus:
 #     command: npx
