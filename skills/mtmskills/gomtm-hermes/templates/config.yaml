@@ -1,48 +1,48 @@
 # Hermes Agent configuration template.
 #
-# This file is intended to be a complete starting point for ~/.hermes/config.yaml.
-# 1. Back up the existing config first.
-# 2. Copy this file to ~/.hermes/config.yaml.
-# 3. Replace <model-id>, <provider-name>, and <context-length>.
-# 4. Put secrets in ~/.hermes/.env or service/container secrets, not here.
+# Complete starting point for ~/.hermes/config.yaml in the gomtm default setup.
+# Default model path: the team-maintained OpenAI-compatible relay at
+# https://sub2api.yuepa8.com/v1 serving gpt-5.5 with medium reasoning effort.
 #
-# context_length must be a plain integer, for example 1050000.
-# Do not write "1.05M" or "256K". Hermes treats invalid values as missing and
-# may fall back to auto/probe metadata such as 256000.
+# Usage:
+# 1. Back up the existing ~/.hermes/config.yaml.
+# 2. Copy this file to ~/.hermes/config.yaml.
+# 3. Put OPENAI_API_KEY in ~/.hermes/.env or service/container secrets.
+# 4. Start a new Hermes session, or restart the gateway.
 
 model:
   provider: custom
-  default: "<model-id>"
-  model: "<model-id>"
+  default: gpt-5.5
+  model: gpt-5.5
   base_url: ${OPENAI_BASE_URL}
   api_key: ${OPENAI_API_KEY}
   api_mode: chat_completions
-  context_length: <context-length>
+  context_length: 1050000
   models:
-    "<model-id>":
-      context_length: <context-length>
+    gpt-5.5:
+      context_length: 1050000
 
 custom_providers:
-  - name: "<provider-name>"
+  - name: Sub2api.yuepa8.com
     base_url: ${OPENAI_BASE_URL}
     api_key: ${OPENAI_API_KEY}
     api_mode: chat_completions
-    model: "<model-id>"
-    context_length: <context-length>
+    model: gpt-5.5
+    context_length: 1050000
     models:
-      "<model-id>":
-        context_length: <context-length>
+      gpt-5.5:
+        context_length: 1050000
 
-# Keeps `hermes -z ... --model <model-id>` on the custom endpoint even when
+# Keeps `hermes -z ... --model gpt-5.5` on the custom endpoint even when
 # --provider is omitted.
 model_aliases:
-  "<model-id>":
+  gpt-5.5:
     provider: custom
-    model: "<model-id>"
+    model: gpt-5.5
     base_url: ${OPENAI_BASE_URL}
     api_key: ${OPENAI_API_KEY}
     api_mode: chat_completions
-    context_length: <context-length>
+    context_length: 1050000
 
 # Keep empty unless a real fallback provider is fully configured. A broken
 # fallback can accidentally route custom models to OpenRouter/OpenAI and fail.
@@ -51,11 +51,41 @@ fallback_providers: []
 compression:
   enabled: true
   threshold: 0.5
+  target_ratio: 0.2
+  protect_last_n: 20
+  hygiene_hard_message_limit: 400
+  protect_first_n: 3
+  abort_on_summary_failure: false
 
 security:
   # Keep true for normal use. If false, Hermes warns that API keys and tokens may
   # enter chat output, session JSONs, and logs.
   redact_secrets: true
+  tirith_enabled: true
+  tirith_path: tirith
+  tirith_timeout: 5
+  tirith_fail_open: true
+  allow_private_urls: false
+  allow_lazy_installs: true
+  website_blocklist:
+    enabled: false
+    domains: []
+    shared_files: []
+
+agent:
+  max_turns: 90
+  reasoning_effort: medium
+  gateway_timeout: 1800
+  restart_drain_timeout: 60
+  api_max_retries: 3
+  service_tier: ''
+  tool_use_enforcement: auto
+  gateway_timeout_warning: 900
+  clarify_timeout: 600
+  gateway_notify_interval: 180
+  gateway_auto_continue_freshness: 3600
+  image_input_mode: auto
+  disabled_toolsets: []
 
 skills:
   # Optional shared skill dirs. Hermes native skills remain in ~/.hermes/skills.
@@ -66,29 +96,162 @@ skills:
   template_vars: true
   inline_shell: false
 
-agent:
-  tool_use_enforcement: auto
+toolsets:
+  - hermes-cli
+
+terminal:
+  backend: local
+  cwd: .
+  timeout: 180
+  persistent_shell: true
+  auto_source_bashrc: true
+
+checkpoints:
+  enabled: true
+  max_snapshots: 50
+  max_total_size_mb: 500
+  max_file_size_mb: 10
+  auto_prune: false
+  retention_days: 7
+  delete_orphans: true
+  min_interval_hours: 24
+
+file_read_max_chars: 100000
+
+tool_output:
+  max_bytes: 50000
+  max_lines: 2000
+  max_line_length: 2000
+
+tool_loop_guardrails:
+  warnings_enabled: true
+  hard_stop_enabled: false
+  warn_after:
+    exact_failure: 2
+    same_tool_failure: 3
+    idempotent_no_progress: 2
+  hard_stop_after:
+    exact_failure: 5
+    same_tool_failure: 8
+    idempotent_no_progress: 5
 
 auxiliary:
+  vision:
+    provider: auto
+    model: ''
+    base_url: ''
+    api_key: ''
+    timeout: 120
+    extra_body: {}
+    download_timeout: 30
+  web_extract:
+    provider: auto
+    model: ''
+    base_url: ''
+    api_key: ''
+    timeout: 360
+    extra_body: {}
   compression:
     provider: custom
-    model: "<model-id>"
+    model: gpt-5.5
     base_url: ${OPENAI_BASE_URL}
     api_key: ${OPENAI_API_KEY}
-    context_length: <context-length>
+    context_length: 1050000
     timeout: 180
     extra_body: {}
   title_generation:
     provider: auto
-    model: ""
-    base_url: ""
-    api_key: ""
+    model: ''
+    base_url: ''
+    api_key: ''
     timeout: 30
     extra_body: {}
+  approval:
+    provider: auto
+    model: ''
+    base_url: ''
+    api_key: ''
+    timeout: 30
+    extra_body: {}
+  session_search:
+    provider: auto
+    model: ''
+    base_url: ''
+    api_key: ''
+    timeout: 30
+    extra_body: {}
+    max_concurrency: 3
+
+delegation:
+  model: ''
+  provider: ''
+  base_url: ''
+  api_key: ''
+  api_mode: ''
+  inherit_mcp_toolsets: true
+  max_iterations: 50
+  child_timeout_seconds: 600
+  reasoning_effort: ''
+  max_concurrent_children: 3
+  max_spawn_depth: 1
+  orchestrator_enabled: true
+  subagent_auto_approve: false
+
+display:
+  compact: false
+  personality: kawaii
+  resume_display: full
+  busy_input_mode: interrupt
+  tui_auto_resume_recent: true
+  bell_on_complete: false
+  show_reasoning: false
+  streaming: false
+  timestamps: false
+  final_response_markdown: strip
+  persistent_output: true
+  persistent_output_max_lines: 200
+  inline_diffs: true
+  file_mutation_verifier: true
+  show_cost: false
+  skin: mono
+  language: en
+  tui_status_indicator: kaomoji
+  interim_assistant_messages: true
+  tool_progress_command: false
+  tool_preview_length: 0
+  ephemeral_system_ttl: 0
+  platforms: {}
+  runtime_footer:
+    enabled: false
+    fields: [model, context_pct, cwd]
+  copy_shortcut: auto
+  tool_progress: all
+
+privacy:
+  redact_pii: false
+
+tts:
+  provider: edge
+  enabled: true
+  voice: ''
+  speed: 1.0
+
+stt:
+  enabled: true
+  provider: auto
+
+approvals:
+  mode: manual
+
+memory:
+  memory_enabled: true
+  user_profile_enabled: true
+  provider: built-in
 
 # Optional Telegram gateway settings live in .env, not config.yaml:
 # TELEGRAM_BOT_TOKEN=<redacted>
 # TELEGRAM_ALLOWED_USERS=<numeric-user-id>
+# TELEGRAM_HOME_CHANNEL=<numeric-chat-id>
 # TELEGRAM_GROUP_ALLOWED_CHATS=<negative-chat-id>
 
 # Optional developer-only GitNexus MCP. Uncomment only in indexed code repos.
