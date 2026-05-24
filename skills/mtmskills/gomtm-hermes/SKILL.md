@@ -65,7 +65,7 @@ metadata:
 1. 复制模板前先备份真实 `config.yaml` 和 `.env`。
 2. 用注释启用可选分支，不新增 default/developer/custom/telegram 分散模板。
 3. `context_length` 用 plain integer（如 `1050000`），并在 `model`、`custom_providers[].models`、`model_aliases`、`auxiliary.compression` 中一致。
-4. `model.max_tokens` 是单次输出预算，默认模板用 `32768` 防止长工具调用参数被过早截断；endpoint 不支持时按实测降到 `16384` / `8192`。
+4. `model.max_tokens` 是单次输出预算，默认模板用 `32768` 降低长工具调用参数被过早截断的概率；它不能解决长上下文下 endpoint 空回复 / 截断问题，必须配合更早的 compression threshold、fallback 或新 session。
 5. `security.redact_secrets: true` 保持开启；不要用 `HERMES_REDACT_SECRETS=false` 覆盖。
 6. 自定义 OpenAI-compatible endpoint 使用 `OPENAI_BASE_URL` / `OPENAI_API_KEY`。
 7. 修改后开新 session；gateway 场景重启 gateway。
@@ -83,7 +83,8 @@ HERMES_TUI=0 hermes chat --quiet -q '只输出 OK'
 
 - Hermes 的 `model.context_length` 是总上下文窗口（输入 + 输出），影响上下文压缩和窗口估算；`model.max_tokens` 是单次 assistant 输出预算，长 `tool_calls[].function.arguments` 也算输出。二者不能互相替代。
 - `hermes config set model.max_tokens 32768` 是官方 `hermes config set` 写入 `config.yaml` 的标准配置方式，不是 monkey patch；当前源码会在 agent 初始化时读取 `model.max_tokens` 并传给 Chat Completions / Anthropic / Responses transport。
-- `Response truncated due to output length limit` 出现在复杂任务中，尤其是一次性生成很长的 `write_file` / `patch` 参数时，通常应先设置合理 `model.max_tokens`（如 `32768`；endpoint 不支持时再降到 `16384` / `8192`），并改用分块写入。
+- `Response truncated due to output length limit` 出现在复杂任务中，尤其是一次性生成很长的 `write_file` / `patch` 参数时，先确认 `model.max_tokens` 已设置，再改用分块写入；如果同类错误稳定出现在约 250K-300K 上下文，根因更可能是 custom endpoint 的实际稳定窗口低于配置窗口，需把 `compression.threshold` 调低到触发点之前。
+- `compression.threshold` 乘以 `model.context_length` 才是自动压缩触发线。`context_length: 1050000` 且 `threshold: 0.5` 会等到约 525K prompt tokens 才自动压缩；若现场在约 270K 已空回复或截断，应先试 `threshold: 0.25`，或把 `context_length` 临时保守下调到实测稳定窗口。
 - Hermes 未知模型或探测失败 fallback 可能显示 `256K` / `256,000`；这不是 gpt-5.5 的推荐窗口。
 - 官方/公开元数据确认 gpt-5.5 窗口为 `1050000` 时，模板应填写 `1050000`，不要只改一处。
 - `/model` 切到 custom provider 时，官方源码已有回归用例要求读取 `custom_providers[].models.<model>.context_length`，否则会显示 128K/256K fallback。

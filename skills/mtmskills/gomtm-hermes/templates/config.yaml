@@ -54,7 +54,9 @@ fallback_providers: []
 
 compression:
   enabled: true
-  threshold: 0.5
+  # Compress before the custom relay's observed unstable 250K-300K region.
+  # With context_length 1050000, 0.25 triggers around 262K prompt tokens.
+  threshold: 0.25
   target_ratio: 0.2
   protect_last_n: 20
   hygiene_hard_message_limit: 400
