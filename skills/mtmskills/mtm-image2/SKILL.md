@@ -1,11 +1,15 @@
 ---
 name: mtm-image2
-description: Use when 用户需要 GPT Image 2 / gpt-image-2 图片生成、参考图编辑、局部编辑、专业图片 prompt、商品图/海报成图、或 Codex app 图片工作流时。
+description: Use when **当进行任何图片编辑,生图操作,调用gpt-image-2模型api前**需要调用;用户需要 GPT Image 2 / gpt-image-2 图片生成、参考图编辑、局部编辑、专业图片 prompt、商品图/海报成图、或 Codex app 图片工作流时。
 ---
 
 # mtm-image2
 
 把普通对话需求转成可执行的 `gpt-image-2` 生成、参考图编辑或局部编辑流程。最终图片必须来自 GPT Image 能力；本地绘图、SVG、Canvas、截图或占位图不能冒充模型出图。
+
+## 常见问题及解决办法
+
+- [生图api超时] - 使用流式api.
 
 ## 优先级
 
@@ -66,4 +70,3 @@ description: Use when 用户需要 GPT Image 2 / gpt-image-2 图片生成、参�
 - `scripts/demo_sync_baseline.sh`：Linux/macOS 同步基线包装；跨平台演示优先直接运行 Python 脚本。
 - `templates/prompt-brief.md`：Codex app / 普通用户 brief 模板。
 
-不要打印 API key，不要把密钥写进技能目录或仓库。
