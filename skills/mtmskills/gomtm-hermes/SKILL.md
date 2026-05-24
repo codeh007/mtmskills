@@ -65,7 +65,7 @@ metadata:
 1. 复制模板前先备份真实 `config.yaml` 和 `.env`。
 2. 用注释启用可选分支，不新增 default/developer/custom/telegram 分散模板。
 3. `context_length` 用 plain integer（如 `1050000`），并在 `model`、`custom_providers[].models`、`model_aliases`、`auxiliary.compression` 中一致。
-4. `model.max_tokens` 是单次输出预算，默认模板用 `32768` 降低长工具调用参数被过早截断的概率；它不能解决长上下文下 endpoint 空回复 / 截断问题，必须配合更早的 compression threshold、fallback 或新 session。
+4. 不要把 `model.max_tokens` 或更低的 `compression.threshold` 写成默认修复。`model.max_tokens` 是单次输出预算；在本机 v0.14.0 现场加入 `model.max_tokens: 32768` 并把 `compression.threshold` 改为 `0.25` 后，TUI context 显示变成 0 且工具调用行为异常，已回滚。
 5. `security.redact_secrets: true` 保持开启；不要用 `HERMES_REDACT_SECRETS=false` 覆盖。
 6. 自定义 OpenAI-compatible endpoint 使用 `OPENAI_BASE_URL` / `OPENAI_API_KEY`。
 7. 修改后开新 session；gateway 场景重启 gateway。
@@ -82,9 +82,10 @@ HERMES_TUI=0 hermes chat --quiet -q '只输出 OK'
 关键事实：
 
 - Hermes 的 `model.context_length` 是总上下文窗口（输入 + 输出），影响上下文压缩和窗口估算；`model.max_tokens` 是单次 assistant 输出预算，长 `tool_calls[].function.arguments` 也算输出。二者不能互相替代。
-- `hermes config set model.max_tokens 32768` 是官方 `hermes config set` 写入 `config.yaml` 的标准配置方式，不是 monkey patch；当前源码会在 agent 初始化时读取 `model.max_tokens` 并传给 Chat Completions / Anthropic / Responses transport。
-- `Response truncated due to output length limit` 出现在复杂任务中，尤其是一次性生成很长的 `write_file` / `patch` 参数时，先确认 `model.max_tokens` 已设置，再改用分块写入；如果同类错误稳定出现在约 250K-300K 上下文，根因更可能是 custom endpoint 的实际稳定窗口低于配置窗口，需把 `compression.threshold` 调低到触发点之前。
-- `compression.threshold` 乘以 `model.context_length` 才是自动压缩触发线。`context_length: 1050000` 且 `threshold: 0.5` 会等到约 525K prompt tokens 才自动压缩；若现场在约 270K 已空回复或截断，应先试 `threshold: 0.25`，或把 `context_length` 临时保守下调到实测稳定窗口。
+- `hermes config set model.max_tokens 32768` 是 Hermes 配置命令，不是 monkey patch；但在当前 v0.14.0 + custom provider 现场不能作为默认修复使用。若测试它，必须先备份，并在新 session 中确认 context 计数、provider、base_url 和工具调用行为都正常。
+- `Response truncated due to output length limit` 出现在复杂任务中，尤其是一次性生成很长的 `write_file` / `patch` 参数时，优先分块写入、压缩或新开 session；不要直接把 `max_tokens` / `threshold` 变更写入模板。
+- `compression.threshold` 乘以 `model.context_length` 是自动压缩触发线，但本机实测把 `threshold` 从 `0.5` 改为 `0.25` 会引入 TUI context 显示 0 等异常。此方向只作为待复现假设，不再作为推荐配置。
+- Hermes v0.14.0 已有上游 bug `NousResearch/hermes-agent#5358`：gateway / CLI / executor 等路径可能没有一致使用 `model.provider` / `model.base_url`，在存在 OpenRouter 或其他环境变量时发生 provider 路由漂移。排障时必须核对运行时真实 provider/base_url，而不是只看 `config.yaml`。
 - Hermes 未知模型或探测失败 fallback 可能显示 `256K` / `256,000`；这不是 gpt-5.5 的推荐窗口。
 - 官方/公开元数据确认 gpt-5.5 窗口为 `1050000` 时，模板应填写 `1050000`，不要只改一处。
 - `/model` 切到 custom provider 时，官方源码已有回归用例要求读取 `custom_providers[].models.<model>.context_length`，否则会显示 128K/256K fallback。
@@ -207,11 +208,12 @@ hermes --tui
 11. `skills.external_dirs` 写成字符串。
 12. 只在一个配置路径设置 `context_length`。
 13. `context_length` 与 `max_tokens` 混用：前者是总窗口，后者是单次输出预算。
+14. 未核对真实运行时 provider/base_url；v0.14.0 存在上游配置解析/路由漂移问题（见 `NousResearch/hermes-agent#5358`）。
 
 ## 验收清单
 
 - [ ] 官方文档/源码或真实命令已核对。
-- [ ] `config.yaml` 与 provider schema 对齐；`context_length` 跨路径一致，`model.max_tokens` 为 endpoint 实测可承受的单次输出预算。
+- [ ] `config.yaml` 与 provider schema 对齐；`context_length` 跨路径一致；真实运行时 provider/base_url 与预期一致。
 - [ ] 服务/worker env 不含意外 `HERMES_TUI=1`。
 - [ ] secret 未进入文档和 commit。
 - [ ] `hermes config check`、`hermes doctor`、custom provider smoke test 已按场景运行。

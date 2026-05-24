@@ -18,25 +18,24 @@ cp ~/.hermes/config.yaml ~/.hermes/config.yaml.$(date +%Y%m%d_%H%M%S).bak
 
 2. 对自定义 OpenAI-compatible endpoint 使用真实稳定窗口，并保持所有路径一致。若供应商公开元数据/`/models` 明确支持百万级窗口（例如 gpt-5.5 为 `1050000`），不要下调成 256K；只有稳定窗口未知或 endpoint 实测不稳时才临时保守下调。配置细节以 `templates/config.yaml` 为权威模板，正文和本文档不再重复完整 YAML。
 
-3. 对长工具链设置明确输出预算。`model.max_tokens` 是单次 assistant 输出上限（包含 `tool_calls[].function.arguments`），不是总上下文窗口；`model.context_length` 是输入+输出总窗口。复杂任务如果出现 `Response truncated due to output length limit`，先用官方配置命令确认输出预算：
+3. 先确认真实运行时 provider / base URL。Hermes v0.14.0 已知存在上游问题：gateway、CLI、executor 等路径可能没有一致传播 `model.provider` / `model.base_url`，在存在 OpenRouter 或其他环境变量时发生路由漂移。参考 `NousResearch/hermes-agent#5358`。排障时不能只看 `config.yaml`，还要看日志中的 `provider=`、`base_url=`、`model=`。
+
+4. 对长工具链设置输出预算只能作为受控实验。`model.max_tokens` 是单次 assistant 输出上限（包含 `tool_calls[].function.arguments`），不是总上下文窗口；`model.context_length` 是输入+输出总窗口。它不是当前现场的默认修复。本机曾尝试 `model.max_tokens: 32768` 加 `compression.threshold: 0.25`，重启 TUI 后 context 显示变成 0 且工具调用行为异常，已回滚。
+
+如必须测试，先备份配置，并只在新 session 中验证：
 
 ```bash
+cp ~/.hermes/config.yaml ~/.hermes/config.yaml.$(date +%Y%m%d_%H%M%S).bak
 hermes config set model.max_tokens 32768
 ```
 
-如果 endpoint 拒绝或仍不稳定，再按实测降到 `16384` 或 `8192`。这只能降低因输出预算不足导致的截断概率；长文档仍应拆成短骨架 + 多次 patch，而不是一次性生成超长 `write_file` 参数。
+若出现 context 计数为 0、provider/base_url 漂移、工具调用异常或 endpoint 拒绝，应立即恢复备份。长文档仍应拆成短骨架 + 多次 patch，而不是一次性生成超长 `write_file` 参数。
 
-4. 如果问题总在约 250K-300K 上下文附近复现，不要继续只调 `max_tokens`。这说明 custom endpoint / 中转层的实际稳定窗口可能低于 `context_length` 配置，或者大量 tool schema / tool result 让请求比屏幕估算更大。`compression.threshold` 乘以 `context_length` 才是自动压缩线；`1050000 * 0.5 = 525000`，因此 270K 附近不会自动压缩。此时应先把阈值调到触发点之前：
+5. 如果问题总在约 250K-300K 上下文附近复现，`compression.threshold * context_length` 触发线仍是一个需要核对的方向，但不要直接把阈值降到 `0.25` 作为默认修复。本机已实测该组合导致 TUI 异常。更稳的操作是手动 `/compress` 或 `/new`，并收集 provider/base_url/context 显示与日志证据。
 
-```bash
-hermes config set compression.threshold 0.25
-```
+6. 保持 `security.redact_secrets: true`，不要用 `HERMES_REDACT_SECRETS=false` 覆盖；否则 Hermes 会提示 secrets 可能进入 chat output、session JSONs 和 logs。
 
-必要时临时把 `model.context_length` 也保守下调到实测稳定窗口，并同步 custom provider、alias、auxiliary compression 中的 context 配置。已经进入反复空回复 / 截断的旧会话，优先 `/compress` 或 `/new`，不要期待修改配置后旧 session 自动恢复。
-
-5. 保持 `security.redact_secrets: true`，不要用 `HERMES_REDACT_SECRETS=false` 覆盖；否则 Hermes 会提示 secrets 可能进入 chat output、session JSONs 和 logs。
-
-6. 不在服务/worker 环境设置 `HERMES_TUI=1`；非 TTY 验证显式使用 `HERMES_TUI=0`。
+7. 不在服务/worker 环境设置 `HERMES_TUI=1`；非 TTY 验证显式使用 `HERMES_TUI=0`。
 
 ## 验证
 
@@ -53,7 +52,8 @@ grep -Ei "Empty response|pending tool result|No fallback available" ~/.hermes/lo
 
 - 短请求正常不代表长工具链稳定。
 - `context_length` 写小会让 `compression.threshold` 过早触发；写大于真实窗口会过晚触发。
-- `max_tokens` 只管单次输出预算；长上下文空回复、`No fallback available` 或 270K 附近稳定复现，优先看实际稳定窗口、压缩阈值和 fallback。
+- `max_tokens` 只管单次输出预算；当前现场不能把它作为默认修复。
 - Hermes 未知模型 fallback 是 256000；看到 `256K` / `256,000` 通常表示当前 session 没读到显式配置或探测失败走了 fallback。
 - 只改 `model.context_length` 不够；custom provider、alias 和 auxiliary compression 仍可能覆盖解析结果。
 - 无 fallback provider 时，空回复不会自动切换模型。
+- v0.14.0 存在 provider/base_url 配置解析漂移风险；看到异常时先核对日志中真实 provider/base_url。
