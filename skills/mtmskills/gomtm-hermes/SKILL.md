@@ -65,21 +65,25 @@ metadata:
 1. 复制模板前先备份真实 `config.yaml` 和 `.env`。
 2. 用注释启用可选分支，不新增 default/developer/custom/telegram 分散模板。
 3. `context_length` 用 plain integer（如 `1050000`），并在 `model`、`custom_providers[].models`、`model_aliases`、`auxiliary.compression` 中一致。
-4. `security.redact_secrets: true` 保持开启；不要用 `HERMES_REDACT_SECRETS=false` 覆盖。
-5. 自定义 OpenAI-compatible endpoint 使用 `OPENAI_BASE_URL` / `OPENAI_API_KEY`。
-6. 修改后开新 session；gateway 场景重启 gateway。
+4. `model.max_tokens` 是单次输出预算，默认模板用 `32768` 防止长工具调用参数被过早截断；endpoint 不支持时按实测降到 `16384` / `8192`。
+5. `security.redact_secrets: true` 保持开启；不要用 `HERMES_REDACT_SECRETS=false` 覆盖。
+6. 自定义 OpenAI-compatible endpoint 使用 `OPENAI_BASE_URL` / `OPENAI_API_KEY`。
+7. 修改后开新 session；gateway 场景重启 gateway。
 
 ## 自定义 provider / 长上下文排障
 
 详见 `references/hermes-long-context-empty-response.md`。快速判断：
 
 ```bash
-grep -Ei "pending tool result|Empty response|No fallback available|AuthenticationError|context|Provider:" ~/.hermes/logs/errors.log | tail -80
+grep -Ei "pending tool result|Empty response|No fallback available|AuthenticationError|context|Provider:|Response truncated" ~/.hermes/logs/errors.log | tail -80
 HERMES_TUI=0 hermes chat --quiet -q '只输出 OK'
 ```
 
 关键事实：
 
+- Hermes 的 `model.context_length` 是总上下文窗口（输入 + 输出），影响上下文压缩和窗口估算；`model.max_tokens` 是单次 assistant 输出预算，长 `tool_calls[].function.arguments` 也算输出。二者不能互相替代。
+- `hermes config set model.max_tokens 32768` 是官方 `hermes config set` 写入 `config.yaml` 的标准配置方式，不是 monkey patch；当前源码会在 agent 初始化时读取 `model.max_tokens` 并传给 Chat Completions / Anthropic / Responses transport。
+- `Response truncated due to output length limit` 出现在复杂任务中，尤其是一次性生成很长的 `write_file` / `patch` 参数时，通常应先设置合理 `model.max_tokens`（如 `32768`；endpoint 不支持时再降到 `16384` / `8192`），并改用分块写入。
 - Hermes 未知模型或探测失败 fallback 可能显示 `256K` / `256,000`；这不是 gpt-5.5 的推荐窗口。
 - 官方/公开元数据确认 gpt-5.5 窗口为 `1050000` 时，模板应填写 `1050000`，不要只改一处。
 - `/model` 切到 custom provider 时，官方源码已有回归用例要求读取 `custom_providers[].models.<model>.context_length`，否则会显示 128K/256K fallback。
@@ -201,11 +205,12 @@ hermes --tui
 10. `~/.agents/skills` 被误认为 Hermes 默认目录。
 11. `skills.external_dirs` 写成字符串。
 12. 只在一个配置路径设置 `context_length`。
+13. `context_length` 与 `max_tokens` 混用：前者是总窗口，后者是单次输出预算。
 
 ## 验收清单
 
 - [ ] 官方文档/源码或真实命令已核对。
-- [ ] `config.yaml` 与 provider schema 对齐；context_length 跨路径一致。
+- [ ] `config.yaml` 与 provider schema 对齐；`context_length` 跨路径一致，`model.max_tokens` 为 endpoint 实测可承受的单次输出预算。
 - [ ] 服务/worker env 不含意外 `HERMES_TUI=1`。
 - [ ] secret 未进入文档和 commit。
 - [ ] `hermes config check`、`hermes doctor`、custom provider smoke test 已按场景运行。

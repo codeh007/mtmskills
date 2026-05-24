@@ -18,9 +18,17 @@ cp ~/.hermes/config.yaml ~/.hermes/config.yaml.$(date +%Y%m%d_%H%M%S).bak
 
 2. 对自定义 OpenAI-compatible endpoint 使用真实稳定窗口，并保持所有路径一致。若供应商公开元数据/`/models` 明确支持百万级窗口（例如 gpt-5.5 为 `1050000`），不要下调成 256K；只有稳定窗口未知或 endpoint 实测不稳时才临时保守下调。配置细节以 `templates/config.yaml` 为权威模板，正文和本文档不再重复完整 YAML。
 
-3. 保持 `security.redact_secrets: true`，不要用 `HERMES_REDACT_SECRETS=false` 覆盖；否则 Hermes 会提示 secrets 可能进入 chat output、session JSONs 和 logs。
+3. 对长工具链设置明确输出预算。`model.max_tokens` 是单次 assistant 输出上限（包含 `tool_calls[].function.arguments`），不是总上下文窗口；`model.context_length` 是输入+输出总窗口。复杂任务如果出现 `Response truncated due to output length limit`，先用官方配置命令设置输出预算：
 
-4. 不在服务/worker 环境设置 `HERMES_TUI=1`；非 TTY 验证显式使用 `HERMES_TUI=0`。
+```bash
+hermes config set model.max_tokens 32768
+```
+
+如果 endpoint 拒绝或仍不稳定，再按实测降到 `16384` 或 `8192`。这只能降低因输出预算不足导致的截断概率；长文档仍应拆成短骨架 + 多次 patch，而不是一次性生成超长 `write_file` 参数。
+
+4. 保持 `security.redact_secrets: true`，不要用 `HERMES_REDACT_SECRETS=false` 覆盖；否则 Hermes 会提示 secrets 可能进入 chat output、session JSONs 和 logs。
+
+5. 不在服务/worker 环境设置 `HERMES_TUI=1`；非 TTY 验证显式使用 `HERMES_TUI=0`。
 
 ## 验证
 

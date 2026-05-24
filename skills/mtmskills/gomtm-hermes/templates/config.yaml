@@ -17,7 +17,11 @@ model:
   base_url: ${OPENAI_BASE_URL}
   api_key: ${OPENAI_API_KEY}
   api_mode: chat_completions
+  # Total context window (input + output) used for compression/window accounting.
   context_length: 1050000
+  # Single-response output budget. Long tool-call JSON arguments count here.
+  # If an endpoint rejects 32768, lower to 16384 or 8192 after testing.
+  max_tokens: 32768
   models:
     gpt-5.5:
       context_length: 1050000
