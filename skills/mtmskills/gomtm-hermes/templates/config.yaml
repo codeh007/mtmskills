@@ -1,0 +1,88 @@
+# Hermes Agent configuration template.
+# Copy the relevant sections into ~/.hermes/config.yaml.
+#
+# Replace <model-id>, <provider-name>, and <context-length>.
+# Use a plain integer for context_length, for example 1050000, not "1.05M" or "256K".
+# Keep secrets in ~/.hermes/.env, profile env, container secrets, or service env.
+
+model:
+  provider: custom
+  default: "<model-id>"
+  model: "<model-id>"
+  base_url: ${OPENAI_BASE_URL}
+  api_key: ${OPENAI_API_KEY}
+  api_mode: chat_completions
+  context_length: <context-length>
+  models:
+    "<model-id>":
+      context_length: <context-length>
+
+custom_providers:
+  - name: "<provider-name>"
+    base_url: ${OPENAI_BASE_URL}
+    api_key: ${OPENAI_API_KEY}
+    api_mode: chat_completions
+    model: "<model-id>"
+    context_length: <context-length>
+    models:
+      "<model-id>":
+        context_length: <context-length>
+
+model_aliases:
+  "<model-id>":
+    provider: custom
+    model: "<model-id>"
+    base_url: ${OPENAI_BASE_URL}
+    api_key: ${OPENAI_API_KEY}
+    api_mode: chat_completions
+    context_length: <context-length>
+
+fallback_providers: []
+
+compression:
+  enabled: true
+  threshold: 0.5
+
+security:
+  # Keep this true for normal use. When false, Hermes prints a startup warning
+  # because API keys and tokens may enter chat output, session JSONs, and logs.
+  redact_secrets: true
+
+skills:
+  # Optional shared skill directories. Hermes native skills remain in ~/.hermes/skills.
+  external_dirs:
+    - ~/.agents/skills
+  template_vars: true
+  inline_shell: false
+
+agent:
+  tool_use_enforcement: auto
+
+auxiliary:
+  compression:
+    provider: custom
+    model: "<model-id>"
+    base_url: ${OPENAI_BASE_URL}
+    api_key: ${OPENAI_API_KEY}
+    context_length: <context-length>
+    timeout: 180
+    extra_body: {}
+  title_generation:
+    provider: auto
+    model: ""
+    base_url: ""
+    api_key: ""
+    timeout: 30
+    extra_body: {}
+
+# Developer-only GitNexus MCP. Uncomment when working in indexed code repos.
+# mcp_servers:
+#   gitnexus:
+#     command: npx
+#     args:
+#       - -y
+#       - gitnexus@latest
+#       - mcp
+#     timeout: 180
+#     connect_timeout: 60
+#     supports_parallel_tool_calls: true

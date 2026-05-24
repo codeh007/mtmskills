@@ -20,6 +20,7 @@ cp ~/.hermes/config.yaml ~/.hermes/config.yaml.$(date +%Y%m%d_%H%M%S).bak
 
 ```yaml
 model:
+  provider: custom
   default: <model-id>
   model: <model-id>
   base_url: ${OPENAI_BASE_URL}
@@ -54,17 +55,23 @@ compression:
   enabled: true
   threshold: 0.5
 
+security:
+  redact_secrets: true
+
 auxiliary:
   compression:
     provider: custom
     model: <model-id>
     base_url: ${OPENAI_BASE_URL}
     api_key: ${OPENAI_API_KEY}
+    context_length: <context-length>
     timeout: 180
     extra_body: {}
 ```
 
-3. 不在服务/worker 环境设置 `HERMES_TUI=1`；非 TTY 验证显式使用 `HERMES_TUI=0`。
+3. 保持 `security.redact_secrets: true`，不要用 `HERMES_REDACT_SECRETS=false` 覆盖；否则 Hermes 会提示 secrets 可能进入 chat output、session JSONs 和 logs。
+
+4. 不在服务/worker 环境设置 `HERMES_TUI=1`；非 TTY 验证显式使用 `HERMES_TUI=0`。
 
 ## 验证
 
@@ -81,5 +88,6 @@ grep -Ei "Empty response|pending tool result|No fallback available" ~/.hermes/lo
 
 - 短请求正常不代表长工具链稳定。
 - `context_length` 写小会让 `compression.threshold` 过早触发；写大于真实窗口会过晚触发。
-- 只改 `model.context_length` 不够；custom provider 和 alias 仍可能覆盖解析结果。
+- Hermes 未知模型 fallback 是 256000；看到 `256K` / `256,000` 通常表示当前 session 没读到显式配置或探测失败走了 fallback。
+- 只改 `model.context_length` 不够；custom provider、alias 和 auxiliary compression 仍可能覆盖解析结果。
 - 无 fallback provider 时，空回复不会自动切换模型。

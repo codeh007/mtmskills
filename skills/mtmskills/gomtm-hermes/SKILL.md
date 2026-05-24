@@ -79,17 +79,16 @@ Hermes 行为归官方 `hermes-agent` 包、`HERMES_HOME`、`config.yaml`、`.en
 
 ## Configuration Templates
 
-`templates/` 维护两套主模板：
+`templates/` 只维护一套完整模板：
 
-- `templates/config.default.yaml` + `templates/env.default.example`：普通用户。包含单一模型 endpoint、`skills.external_dirs: ["~/.agents/skills"]`、可选 Telegram 和基础 auxiliary 配置；不默认启用 TUI。
-- `templates/config.developer.yaml` + `templates/env.developer.example`：开发者。包含 default 模板内容、GitNexus MCP；不默认启用 TUI。
-- 旧的 `templates/config.custom-provider.yaml`、`templates/env.custom-provider.example`、`templates/env.telegram.example` 作为兼容片段保留。
+- `templates/config.yaml`：模型、custom provider、model alias、compression、secret redaction、skills、auxiliary；GitNexus MCP 作为注释块保留。
+- `templates/env.example`：OpenAI-compatible endpoint secret、可选 Telegram、可选 GitNexus tuning；不默认启用 TUI。
 
-选择规则：
+使用规则：
 
-- 只做聊天、Telegram、基础自动化：用 default 模板。
-- 要在代码仓库里开发、审查影响范围、遵守 GitNexus 规则：用 developer 模板。
+- 单个完整正确例子优先；普通聊天、Telegram、开发者 GitNexus 都从同一模板按注释启用相关块。
 - 所有 secret 只放 `.env`、profile secret store、容器 secret 或运行环境；`config.yaml` 只保留 `${VAR}` 引用。不要把交互式偏好 `HERMES_TUI=1` 写入共享 `$HERMES_HOME/.env`，以免破坏后台 worker；需要 TUI 时显式用 `hermes --tui`。
+- 保持 `security.redact_secrets: true`，否则 Hermes 启动时会提示 secret redaction disabled，API keys 和 tokens 可能进入 chat output、session JSONs 和 logs。
 - 修改 `config.yaml`、`.env`、MCP 或 context files 后，开启新 session；gateway 场景执行 restart。
 
 ## User-level / External Skills
@@ -168,17 +167,13 @@ hermes chat --quiet --skills <skill-name> -q '只回复 OK'
 
 ### Current OpenAI-compatible shape
 
-完整模板优先使用：
-
-- 普通用户：`templates/config.default.yaml`、`templates/env.default.example`
-- 开发者：`templates/config.developer.yaml`、`templates/env.developer.example`
-
-兼容片段：`templates/config.custom-provider.yaml`、`templates/env.custom-provider.example`、`templates/env.telegram.example`。
+完整模板优先使用 `templates/config.yaml` 和 `templates/env.example`。
 
 `config.yaml` 推荐形态。`context_length` 用 endpoint/模型真实稳定窗口，并在所有解析路径保持一致；不要把 Hermes 未知模型 fallback（256K）当成所有模型的最佳值。OpenRouter 当前公开元数据中 `openai/gpt-5.5` / `openai/gpt-5.5-pro` 为 `1050000`，若实际 endpoint 支持该窗口，应配置为 `1050000`：
 
 ```yaml
 model:
+  provider: custom
   default: <model-id>
   model: <model-id>
   base_url: ${OPENAI_BASE_URL}
@@ -213,12 +208,16 @@ compression:
   enabled: true
   threshold: 0.5
 
+security:
+  redact_secrets: true
+
 auxiliary:
   compression:
     provider: custom
     model: <model-id>
     base_url: ${OPENAI_BASE_URL}
     api_key: ${OPENAI_API_KEY}
+    context_length: <context-length>
     timeout: 180
     extra_body: {}
 ```
@@ -244,16 +243,18 @@ alias h='hermes --tui'
 
 1. `config.yaml` 保存结构和 `${VAR}` 引用。
 2. `.env`、profile secret store、容器 secret 或运行环境保存 secret。共享/服务主机不要默认写 `HERMES_TUI=1`；交互式 TUI 使用 `hermes --tui`。
-3. 自定义 OpenAI-compatible endpoint 使用 `api_mode: chat_completions`。
-4. `custom_providers[].name` 生成 provider slug，例如 `Example Relay` 对应 `custom:example-relay`；实际 slug 以 `hermes model` / 真实命令为准。
-5. `model.default` / `model.model` 保存当前默认模型；保持一个当前默认模型。
-6. `context_length` 必须按真实 provider/model 窗口填写，并在 `model`、`model.models`、`custom_providers[].context_length`、`custom_providers[].models`、`model_aliases` 中一致；不要只改一处。
-7. `compression.threshold` 按 `context_length × threshold` 触发；`context_length` 写小会过早压缩，写大于实际窗口会过晚压缩并增加空回复/上下文错误风险。
-8. 第三方中转 endpoint 先查供应商 `/models`/公开元数据/实测稳定窗口；能确认百万级窗口（如 OpenRouter `openai/gpt-5.5` 为 `1050000`）就配置真实值，未知时才临时保守下调。
-9. 显式配置 `auxiliary.compression`，避免 auto 路径选择到 context 元数据不一致的模型。
-10. 避免把 `model.provider` 写成 `openrouter`；自定义 endpoint 验证时显式使用 `--provider custom:<slug>` 或 bare custom endpoint 配置。
-11. 对第三方中转模型补 `model_aliases`，确保 `--model <model-id>` 不带 `--provider` 时仍命中自定义 endpoint。
-12. 修改配置后启动新会话；gateway 场景执行 restart。
+3. 默认保留 `security.redact_secrets: true`，不要用 `HERMES_REDACT_SECRETS=false` 覆盖；只有明确需要原始凭据调试且已接受日志风险时才临时关闭。
+4. 自定义 OpenAI-compatible endpoint 使用 `api_mode: chat_completions`。
+5. `custom_providers[].name` 生成 provider slug，例如 `Example Relay` 对应 `custom:example-relay`；实际 slug 以 `hermes model` / 真实命令为准。
+6. `model.default` / `model.model` 保存当前默认模型；保持一个当前默认模型。
+7. `context_length` 必须按真实 provider/model 窗口填写，并在 `model`、`model.models`、`custom_providers[].context_length`、`custom_providers[].models`、`model_aliases`、`auxiliary.compression.context_length` 中一致；不要只改一处。
+8. Hermes 未知模型 fallback 是 256000，TUI/banner 出现 `256K` 或 `256,000` 通常表示当前 session 没读到显式 override，或自动探测失败走了 fallback；它不是所有模型的推荐窗口。
+9. `compression.threshold` 按 `context_length × threshold` 触发；`context_length` 写小会过早压缩，写大于实际窗口会过晚压缩并增加空回复/上下文错误风险。
+10. 第三方中转 endpoint 先查供应商 `/models`/公开元数据/实测稳定窗口；能确认百万级窗口（如 OpenRouter `openai/gpt-5.5` 为 `1050000`）就配置真实值，未知时才临时保守下调。
+11. 显式配置 `auxiliary.compression`，避免 auto 路径选择到 context 元数据不一致的模型。
+12. 避免把 `model.provider` 写成 `openrouter`；自定义 endpoint 验证时显式使用 `--provider custom:<slug>` 或 bare custom endpoint 配置。
+13. 对第三方中转模型补 `model_aliases`，确保 `--model <model-id>` 不带 `--provider` 时仍命中自定义 endpoint。
+14. 修改配置后启动新会话；gateway 场景执行 restart。
 
 ### Required checks
 
@@ -338,7 +339,7 @@ sudo -iu "$TARGET_USER" hermes config check
 
 ### Configure model
 
-使用 `hermes model` 交互配置，或写入 `templates/config.custom-provider.yaml` 对应形态。配置后运行：
+使用 `hermes model` 交互配置，或按 `templates/config.yaml` 写入对应形态。配置后运行：
 
 ```bash
 sudo -iu "$TARGET_USER" hermes -z "Reply exactly: OK" --provider custom:<provider-slug> --model <model-id> --ignore-rules
@@ -398,7 +399,7 @@ Termux 依赖通过 `pkg` 安装。失败时补齐 `python`、`git`、`clang`、
 
 ## Developer Code Intelligence / GitNexus MCP
 
-开发者场景用 `templates/config.developer.yaml`，细节见 `references/hermes-gitnexus-mcp.md`。
+开发者场景启用 `templates/config.yaml` 中的 `mcp_servers.gitnexus` 注释块，细节见 `references/hermes-gitnexus-mcp.md`。
 
 要点：
 
@@ -465,13 +466,8 @@ HERMES_TUI=0 hermes chat --quiet -q '只输出 OK'
 
 ## Support Files
 
-- `templates/config.default.yaml`
-- `templates/env.default.example`
-- `templates/config.developer.yaml`
-- `templates/env.developer.example`
-- `templates/config.custom-provider.yaml`
-- `templates/env.custom-provider.example`
-- `templates/env.telegram.example`
+- `templates/config.yaml`
+- `templates/env.example`
 - `scripts/verify-custom-provider.sh`
 - `references/hermes-kanban-runtime-boundary.md`
 - `references/hermes-kanban-gomtmui-parity.md`
