@@ -3,6 +3,9 @@
 # Complete starting point for ~/.hermes/config.yaml in the gomtm default setup.
 # Default model path: the team-maintained OpenAI-compatible relay at
 # https://sub2api.yuepa8.com/v1 serving gpt-5.5 with medium reasoning effort.
+# The current relay plan is treated as a 400K total context chain. Do not copy
+# the official API million-token number here unless this exact endpoint/plan is
+# verified to support it end to end.
 #
 # Usage:
 # 1. Back up the existing ~/.hermes/config.yaml.
@@ -18,10 +21,12 @@ model:
   api_key: ${OPENAI_API_KEY}
   api_mode: chat_completions
   # Total context window (input + output) used for compression/window accounting.
-  context_length: 1050000
+  # This must be the real endpoint/plan window, not only the model's official API
+  # maximum.
+  context_length: 400000
   models:
     gpt-5.5:
-      context_length: 1050000
+      context_length: 400000
 
 custom_providers:
   - name: Sub2api.yuepa8.com
@@ -29,10 +34,10 @@ custom_providers:
     api_key: ${OPENAI_API_KEY}
     api_mode: chat_completions
     model: gpt-5.5
-    context_length: 1050000
+    context_length: 400000
     models:
       gpt-5.5:
-        context_length: 1050000
+        context_length: 400000
 
 # Keeps `hermes -z ... --model gpt-5.5` on the custom endpoint even when
 # --provider is omitted.
@@ -43,7 +48,7 @@ model_aliases:
     base_url: ${OPENAI_BASE_URL}
     api_key: ${OPENAI_API_KEY}
     api_mode: chat_completions
-    context_length: 1050000
+    context_length: 400000
 
 # Keep empty unless a real fallback provider is fully configured. A broken
 # fallback can accidentally route custom models to OpenRouter/OpenAI and fail.
@@ -157,7 +162,7 @@ auxiliary:
     model: gpt-5.5
     base_url: ${OPENAI_BASE_URL}
     api_key: ${OPENAI_API_KEY}
-    context_length: 1050000
+    context_length: 400000
     timeout: 180
     extra_body: {}
   title_generation:

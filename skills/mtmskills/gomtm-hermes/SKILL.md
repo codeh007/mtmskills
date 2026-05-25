@@ -39,6 +39,7 @@ metadata:
 - 官方 `v2026.5.16 / v0.14.0` 支持 PyPI / `uv tool` / `uvx` / installer。
 - `custom_providers:` 是自定义 provider 选择器入口；模板使用 `custom_providers` 以便 `custom:<slug>` 选择。
 - `config.yaml` 保存结构和 `${VAR}` 引用；`.env` / service env / secret store 保存 secret。
+- 自定义 OpenAI-compatible relay 的 `context_length` 必须写真实可用窗口。当前 gomtm 默认 `gpt-5.5` 套餐链路按 400K 总窗口处理，不按官方 API 的百万级窗口写 1050000。
 - 新会话或 gateway restart 才会稳定读取配置变化。
 - 需要 TUI 时显式运行 `hermes --tui`；不要在共享 `$HERMES_HOME/.env` 默认写 `HERMES_TUI=1`。
 
@@ -54,7 +55,7 @@ metadata:
 
 - 使用 `templates/config.yaml` 和 `templates/env.example` 作为唯一可复制起点；复制前备份真实 `config.yaml` 和 `.env`。
 - `context_length` 用 plain integer，并在 `model`、`custom_providers[].models`、`model_aliases`、`auxiliary.compression` 中一致。
-- 不把 `model.max_tokens`、低 `compression.threshold` 或 fallback provider 写成默认修复；先用真实命令验证当前 Hermes 版本、provider、base_url、context metadata 与工具调用行为。
+- 长上下文在约 270K 输入附近失败时，优先按 endpoint / 套餐真实输入窗口处理；不要把 `model.max_tokens`、低 `compression.threshold` 或 fallback provider 写成默认修复。
 - `security.redact_secrets: true` 保持开启；不要用 `HERMES_REDACT_SECRETS=false` 覆盖。
 - 自定义 OpenAI-compatible endpoint 使用 `OPENAI_BASE_URL` / `OPENAI_API_KEY`。
 - 修改配置后开新 session；gateway 场景重启 gateway。
@@ -64,18 +65,17 @@ metadata:
 详见 `references/hermes-long-context-empty-response.md`。先收集信号：
 
 ```bash
-grep -Ei "pending tool result|Empty response|No fallback available|AuthenticationError|context|Provider:|Response truncated" ~/.hermes/logs/errors.log | tail -80
+grep -Ei "pending tool result|Empty response|context|Provider:|Response truncated" ~/.hermes/logs/errors.log | tail -80
 HERMES_TUI=0 hermes chat --quiet -q '只输出 OK'
 ```
 
 判断规则：
 
-- `model.context_length` 是输入+输出总窗口；`model.max_tokens` 是单次 assistant 输出预算，包含 `tool_calls[].function.arguments`。二者不能互相替代。
+- `model.context_length` 是 Hermes 用于窗口和压缩估算的总窗口，必须小于等于当前链路真实上限。
+- 当前 gomtm 默认 relay 的 `gpt-5.5` 套餐链路按 400K 总窗口处理；约 270K 输入附近失败通常说明入口输入窗口已到边界。
+- `model.max_tokens` 只管单次输出预算，不能修复输入窗口被套餐或中转提前截断的问题。
 - `Response truncated due to output length limit` 在复杂长任务中优先按“短骨架 + 多次 patch”、`/compress` 或新 session 处理。
-- Hermes v0.14.0 存在上游 `NousResearch/hermes-agent#5358` 指向的 provider/base_url 路由漂移风险；必须核对日志中的真实 `provider=`、`base_url=`、`model=`，不要只看 `config.yaml`。
-- 未知模型或探测失败 fallback 可能显示 `256K` / `256000`；这不是 gpt-5.5 的推荐窗口。
-- `Empty response` + `No fallback available` 通常表示模型/中转在长工具链后返回空内容，且没有可用 fallback 接管。
-- `Provider: openrouter` + 自定义模型名通常是 provider override、默认 provider、alias 或 fallback 配置错误。
+- 未知模型或探测失败可能显示 `256K` / `256000`；这不是当前默认 relay 的目标配置。
 
 必要验证：
 
@@ -160,7 +160,7 @@ Termux 使用官方 installer。失败时补齐 `python`、`git`、`clang`、`ru
 
 ## 常见坑
 
-1. provider / endpoint / alias 不一致，或未核对真实运行时 provider/base_url。
+1. `context_length` 写成模型宣传窗口，而不是当前 endpoint / 套餐真实窗口。
 2. secret 写进 docs、issue、commit。
 3. 服务环境默认 `HERMES_TUI=1`。
 4. 修改配置后继续用旧 session。
@@ -171,12 +171,12 @@ Termux 使用官方 installer。失败时补齐 `python`、`git`、`clang`、`ru
 9. 把 checkout 绝对路径当可移植文档。
 10. `~/.agents/skills` 被误认为 Hermes 默认目录。
 11. `skills.external_dirs` 写成字符串。
-12. 只在一个配置路径设置 `context_length`，或混用 `context_length` 与 `max_tokens`。
+12. 只在一个配置路径设置 `context_length`，或把 `max_tokens` 当成上下文窗口。
 
 ## 验收清单
 
 - [ ] 官方文档/源码或真实命令已核对。
-- [ ] `config.yaml` 与 provider schema 对齐；`context_length` 跨路径一致；真实运行时 provider/base_url 与预期一致。
+- [ ] `config.yaml` 与 provider schema 对齐；`context_length` 跨路径一致且不超过真实链路窗口。
 - [ ] 服务/worker env 不含意外 `HERMES_TUI=1`。
 - [ ] secret 未进入文档和 commit。
 - [ ] `hermes config check`、`hermes doctor`、custom provider smoke test 已按场景运行。
