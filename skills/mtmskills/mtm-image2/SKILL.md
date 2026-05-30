@@ -16,7 +16,6 @@ description: Use when **当进行任何生图操作,调用 gpt-image-2 模型 AP
 - 用户要求生成图片成品时，优先使用本技能。
 - Codex app 默认 `imagegen` 技能只作为低优先级宿主工具：只有它能真实调用 GPT Image 能力并返回模型图片时才可使用。
 - 如果内置 `imagegen`、浏览器截图、HTML/SVG、Pillow、Canvas、PowerShell/.NET 绘图等路径只能做本地合成，不能用作最终图片交付。
-- 图片 API 或宿主图片工具不可用时，进入 `prompt-only`，保存/返回完整 brief 与最终 prompt。
 
 ## 先判断
 
@@ -51,3 +50,8 @@ description: Use when **当进行任何生图操作,调用 gpt-image-2 模型 AP
 
 - `scripts/mtm_image_gen.py`：Python 3 标准库脚本，只调用 `/v1/images/generations` 流式生图；优先复用当前进程的 `OPENAI_*` 环境变量，并读取 Codex provider 的 base URL、headers、query params。
 - `templates/prompt-brief.md`：Codex app / 普通用户 brief 模板。
+
+## 常见问题与修复
+
+1. 如果用户的 .codex/.env 文件不存在,可能导致生图程序出错,因为生图python依赖环境变量. 如果确实遇到这个问题,应当:
+    1.1 阅读: `~/.codex/auth.json` 和 `~/.codex/config.toml`文件,确认用户正确配置了 api_key 和 base_url, 并主动创建确保`~/.codex/.env`存在这个环境变量. codex 需要重启后才能加载环境变量, 应当提醒用户重启codex.
