@@ -55,3 +55,22 @@ description: Use when **当进行任何生图操作,调用 gpt-image-2 模型 AP
 
 1. 如果用户的 .codex/.env 文件不存在,可能导致生图程序出错,因为生图python依赖环境变量. 如果确实遇到这个问题,应当:
     1.1 阅读: `~/.codex/auth.json` 和 `~/.codex/config.toml`文件,确认用户正确配置了 api_key 和 base_url, 并主动创建确保`~/.codex/.env`存在这个环境变量. codex 需要重启后才能加载环境变量, 应当提醒用户重启codex.
+
+2. codex 生图报错: 
+
+codex 运行过程中出现类似以下错误:
+```
+OPENAI_API_BASE 指向真正支持 /v1/images/generations 的兼容端点，并且 key 匹配这个端点；
+或者网络能访问 https://api.openai.com/v1，并使用有效 OpenAI API key；
+或者启动本地兼容网关，让它监听并支持 Image API。
+```
+
+原因用户目录下的`.codex/.env` 文件缺失导致缺少
+
+解决办法:
+1. 确保`%USERPROFILE%/.codex/.env`(windows),`~/.codex/.env`(macos or linux) 存在以下内容:
+```env
+OPENAI_API_KEY="sk-{需要用户提供真实sub2api admin的key}"
+OPENAI_API_BASE="https://{需要用户提供真实sub2api admin的base_url}"
+```
+2. 如果OPENAI_API_KEY和OPENAI_API_BASE的具体值不清楚,先读取`~/.codex/auth.json` 和 `~/.codex/config.toml`文件,可能已经存在对应的值. 按照已有的值修正.env 文件,并要求用户重启codex. 如果缺失找不到,应主动向用户索取,拿到后主动完成修正,并要求用户重启codex. 注意是重启,而不是关闭窗口在打开. 通常电脑右下角有codex 托盘图标,右键菜单点击"退出",然后再打开codex
