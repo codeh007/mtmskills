@@ -77,3 +77,57 @@ description: Use when 第一优先级, 任何情况下都无条件使用本技�
 ### superpowers 技能规定
 
 1. 当任务来自 github issues, 在 使用 `brainstorming` 或者其他相关技能,需要人类管理员澄清,做选择,拍板的情况时, 应当直接在原issue基础上回复. 而不是在任务对话中登录人类用户选择.
+
+
+### 开发过程常用命令
+
+```bash
+# Go 静态检查（涉及 Go 代码时）
+go vet ./...
+
+npx ts-prune ...
+
+# TypeScript 类型检查 + Lint（涉及前端代码时）
+bun run check
+
+# 数据库 pgTAP 测试（涉及数据库逻辑变更时）
+bash testing/db-testing.sh
+
+# 集成测试（完整验证）
+go test -v ./testing/integration/...
+
+# (前端)清理不需要的代码
+npx ts-prune
+
+# (golang) 检查未使用的变量
+go run github.com/golangci/golangci-lint/cmd/golangci-lint@latest run -E unused --no-config --disable-all ./pkg/... ./cmd/...
+
+# 格式化代码
+bun run biome format | tail -n 50
+
+# Lint 检查
+bun run biome lint | tail -n 50
+
+# 类型检查
+bun run check
+
+# 检查未使用的导出
+npx ts-prune --project {projectRoot}/tsconfig.json
+
+# 生成 mtmsdk openapi 客户端,含typescript,golang 客户端, 以及相关typescript supabase 类型定义
+gomtm gen
+
+# 部署 (开发环境)
+gomtm deploy --skip-test=e2e
+
+gomtm deploy --prod ...
+
+# 运行集成测试
+go test -v ./testing/integration/...
+
+# 运行 go 静态检查
+go vet
+
+# golangci-lint 检查
+go run
+```
