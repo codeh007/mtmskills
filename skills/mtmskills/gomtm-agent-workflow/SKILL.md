@@ -32,7 +32,7 @@ metadata:
 - **Hermes Kanban**：依赖、assignee、running/blocked/done、worker runs、heartbeat、retry、日志。
 - **PR / CI / Release**：代码变更、review、自动检查、可安装或可访问产物。
 - **Telegram / GitHub comment**：人类最终管理者的确认、调整、暂停。
-- **mtmwiki reports**：长期中文报告和决策备忘。
+- **mtmwiki durable pages**：长期知识沉淀；可复用答案/方案写 `queries`，稳定边界写 `concepts`，只有时间化验收/诊断/部署证据写 `reports`。
 
 ## Default Flow
 
@@ -67,7 +67,7 @@ Issue -> specify/comment -> approval gate -> Kanban execution -> review -> evide
 - Go runtime、CLI、数据库、device/runtime：`codeh007/gomtm`。
 - Next.js dashboard、Web UI、用户可访问页面：`codeh007/gomtmui`。
 - Python CLI、FastAPI、Hermes embedded gateway、设备编排：`codeh007/mtmai`。
-- 私有知识库、长期报告、raw 迁移：`codeh007/mtmwiki`。
+- 私有知识库、长期 query/concept/report、raw 迁移：`codeh007/mtmwiki`。
 - 私有技能源码：`codeh007/mtmskills`。
 - 跨仓任务：创建 umbrella issue，再为实际改动仓库创建 child issues。
 
