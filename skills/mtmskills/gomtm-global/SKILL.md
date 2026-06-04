@@ -62,6 +62,13 @@ description: Use when 第一优先级, 任何情况下都无条件使用本技�
   - [录屏] - `~/.tmp/recordings/`
   - [日志] - `~/.tmp/logs/`
 
+### Git worktree 目录约定
+
+- gomtm 相关仓库需要创建 git worktree 时, 优先使用当前仓库项目根目录下的 `.worktrees/<branch-or-task>/`; 如果项目已存在 `.worktree/`, 可沿用 `.worktree/<branch-or-task>/`。
+- 创建项目内 worktree 前必须确认 `.worktrees/` 或 `.worktree/` 已被 git ignore; 未被 ignore 时先补 `.gitignore`。
+- 不要默认把新 worktree 放到用户目录、`~/.config/superpowers/worktrees/` 或 `/workspace/.tmp/`; 这些位置只用于清理历史遗留或用户明确指定的兼容场景。
+- 清理分支时, 先用 `git worktree list` 和 `git status` 确认对应 worktree 无未保存工作, 再删除本地 worktree 与本地分支。
+
 
 ## github 仓库分支规定
 
