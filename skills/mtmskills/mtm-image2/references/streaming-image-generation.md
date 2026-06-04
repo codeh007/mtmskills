@@ -3,11 +3,22 @@
 ## 核心流程
 
 1. 把用户需求整理成结构化 prompt。
-2. 选择尺寸、质量、格式和输出路径。
-3. 调用 `scripts/mtm_image_gen.py`；脚本只走 `/v1/images/generations`，并强制 `stream=true`。
-4. 保存最终 prompt、图片和 JSON report。
+2. 先运行 `scripts/mtm_image_gen.py --probe`，确认当前 provider 的图片能力。
+3. 选择尺寸、质量、格式和输出路径。
+4. 调用 `scripts/mtm_image_gen.py`；正常生图只走 `/v1/images/generations`，并强制 `stream=true`。
+5. 保存最终 prompt、图片和 JSON report。
 
 ## 命令
+
+能力探测：
+
+```text
+python scripts/mtm_image_gen.py \
+  --probe \
+  --report-output /tmp/mtm-image2-probe.json
+```
+
+真实生图：
 
 ```text
 python scripts/mtm_image_gen.py \
@@ -76,7 +87,7 @@ python scripts/mtm_image_gen.py \
 
 一次真实可用结果必须满足：
 
-1. 命令返回 JSON report。
+1. `--probe` 返回 `can_generate_image: true`，或者同一次生图命令返回 JSON report。
 2. `images` 中至少有一个最终图片路径。
 3. report 中记录 `model`、`size`、`quality`、`stream=true`、`prompt`、`images`。
 4. 图片文件来自 API 返回的 base64 事件；不得用本地绘图替代。
@@ -85,8 +96,12 @@ python scripts/mtm_image_gen.py \
 
 ## 失败处理
 
+- `/v1/models` 列出 `gpt-image-2` 但 `--probe` 的 `can_generate_image=false`：按不可出图处理；模型列表只是路由目录，不证明图片端点或账号组权限可用。
 - 缺少 API key：检查当前进程是否已有 `OPENAI_API_KEY`，再检查 Codex provider `env_key` 指向的环境变量；不要让用户把密钥贴到公开 issue。
 - `/images/generations` 404：网关不支持图片端点或 base URL 错误；确认 provider 是否支持 Image API。
+- `/images/generations` 403 且 message 类似 `Image generation is not enabled for this group`：上游账号组没有图片能力，需要启用图片权限或更换上游。
+- `/images/generations` 502：公网服务在线不等于 Images API 可用；优先排查上游 origin/网关对图片端点的转发。
+- `/responses` 返回 200 但 `output_types` 只有 `message`，或文本里是 SVG/Data URL：这是文本模型绕开图片工具的结果，不是 GPT Image 出图。
 - `model not found`：上游未启用 `gpt-image-2`；查询 `/v1/models` 或选择已启用的 GPT Image 模型。
 - 公网长请求 524/超时：保持 streaming；产品接口改成异步 job；必须同步时才验证网关非流式 keepalive。
 - 拒绝或审核失败：概括原因，给出合规改写。

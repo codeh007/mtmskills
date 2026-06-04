@@ -13,6 +13,7 @@ import base64
 import json
 import os
 import re
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -233,7 +234,97 @@ def request_stream(url: str, key: str, payload: dict, extra_headers: dict[str, s
             return list(parse_sse_events(resp))
     except urllib.error.HTTPError as exc:
         detail = exc.read().decode("utf-8", errors="replace")
-        raise SystemExit(f"API stream request failed ({exc.code}): {redact_secret_fragments(detail)}") from exc
+        raise SystemExit(
+            f"API stream request failed ({exc.code}): {redact_secret_fragments(detail)}\n"
+            "Run `scripts/mtm_image_gen.py --probe` to separate model visibility, Images API support, "
+            "and Responses image tool support."
+        ) from exc
+
+
+def request_json_result(
+    url: str,
+    key: str,
+    payload: dict | None = None,
+    extra_headers: dict[str, str] | None = None,
+    *,
+    method: str | None = None,
+    timeout: int = 90,
+) -> dict:
+    body = None if payload is None else json.dumps(payload).encode("utf-8")
+    headers = {
+        "Authorization": f"Bearer {key}",
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+        "User-Agent": "mtm-image-gen/1.0",
+    }
+    if extra_headers:
+        headers.update(extra_headers)
+    started = time.monotonic()
+    req = urllib.request.Request(url, data=body, headers=headers, method=method or ("POST" if payload is not None else "GET"))
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            text = resp.read(1024 * 1024).decode("utf-8", errors="replace")
+            return {"status": resp.status, "elapsed_s": round(time.monotonic() - started, 2), "body": parse_json_body(text)}
+    except urllib.error.HTTPError as exc:
+        text = exc.read(1024 * 1024).decode("utf-8", errors="replace")
+        return {"status": exc.code, "elapsed_s": round(time.monotonic() - started, 2), "body": parse_json_body(text)}
+    except Exception as exc:
+        return {
+            "status": "exception",
+            "elapsed_s": round(time.monotonic() - started, 2),
+            "body": {"error": type(exc).__name__, "message": redact_secret_fragments(str(exc))[:500]},
+        }
+
+
+def request_stream_result(
+    url: str,
+    key: str,
+    payload: dict,
+    extra_headers: dict[str, str] | None = None,
+    *,
+    timeout: int = 180,
+) -> dict:
+    body = json.dumps(payload).encode("utf-8")
+    headers = {
+        "Authorization": f"Bearer {key}",
+        "Content-Type": "application/json",
+        "Accept": "text/event-stream",
+        "User-Agent": "mtm-image-gen/1.0",
+    }
+    if extra_headers:
+        headers.update(extra_headers)
+    started = time.monotonic()
+    req = urllib.request.Request(url, data=body, headers=headers, method="POST")
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            events = list(parse_sse_events(resp))
+            return {
+                "status": resp.status,
+                "elapsed_s": round(time.monotonic() - started, 2),
+                "body": {
+                    "event_count": len(events),
+                    "event_types": sorted({str(event.get("type", "")) for event in events if isinstance(event, dict)}),
+                    "has_image_data": any(isinstance(event, dict) and bool(image_b64_from_event(event)) for event in events),
+                },
+            }
+    except urllib.error.HTTPError as exc:
+        text = exc.read(1024 * 1024).decode("utf-8", errors="replace")
+        return {"status": exc.code, "elapsed_s": round(time.monotonic() - started, 2), "body": parse_json_body(text)}
+    except Exception as exc:
+        return {
+            "status": "exception",
+            "elapsed_s": round(time.monotonic() - started, 2),
+            "body": {"error": type(exc).__name__, "message": redact_secret_fragments(str(exc))[:500]},
+        }
+
+
+def parse_json_body(text: str) -> dict:
+    text = redact_secret_fragments(text)
+    try:
+        body = json.loads(text)
+    except Exception:
+        return {"raw_prefix": text[:500]}
+    return body if isinstance(body, dict) else {"body": body}
 
 
 def parse_sse_events(lines) -> object:
@@ -264,6 +355,126 @@ def parse_sse_events(lines) -> object:
 def redact_secret_fragments(text: str) -> str:
     text = re.sub(r"sk-[A-Za-z0-9_*.-]{12,}", "sk-***REDACTED***", text)
     return re.sub(r"(Bearer\s+)[A-Za-z0-9._~+/=-]{12,}", r"\1***REDACTED***", text, flags=re.IGNORECASE)
+
+
+def summarize_error(body: dict) -> dict:
+    error = body.get("error")
+    if isinstance(error, dict):
+        return {
+            "type": error.get("type"),
+            "code": error.get("code"),
+            "message": redact_secret_fragments(str(error.get("message") or ""))[:300],
+        }
+    if isinstance(error, str):
+        return {"message": redact_secret_fragments(error)[:300]}
+    for key in ("message", "detail", "title", "raw_prefix"):
+        if key in body:
+            return {key: redact_secret_fragments(str(body.get(key) or ""))[:300]}
+    return {"body_keys": sorted(str(key) for key in body.keys())[:8]}
+
+
+def image_data_in_body(body: dict) -> bool:
+    if body.get("has_image_data") is True:
+        return True
+    data = body.get("data")
+    if isinstance(data, list):
+        return any(isinstance(item, dict) and bool(item.get("b64_json")) for item in data)
+    return False
+
+
+def summarize_responses_output(body: dict) -> dict:
+    output = body.get("output")
+    if not isinstance(output, list):
+        return {"output_types": [], "has_image_generation_call": False}
+    output_types: list[str] = []
+    text_prefixes: list[str] = []
+    has_image_generation_call = False
+    for item in output:
+        if not isinstance(item, dict):
+            continue
+        item_type = str(item.get("type") or "")
+        if item_type:
+            output_types.append(item_type)
+        if item_type == "image_generation_call" and item.get("result"):
+            has_image_generation_call = True
+        content = item.get("content")
+        if isinstance(content, list):
+            for content_item in content:
+                if isinstance(content_item, dict) and isinstance(content_item.get("text"), str):
+                    text_prefixes.append(content_item["text"][:160])
+    return {
+        "output_types": output_types,
+        "has_image_generation_call": has_image_generation_call,
+        "text_prefixes": text_prefixes[:2],
+    }
+
+
+def build_probe_report(
+    *,
+    base_url: str,
+    model: str,
+    models_result: dict,
+    images_result: dict,
+    responses_result: dict,
+) -> dict:
+    models_body = models_result.get("body") if isinstance(models_result.get("body"), dict) else {}
+    models_data = models_body.get("data") if isinstance(models_body, dict) else None
+    model_ids = sorted(
+        {str(item.get("id")) for item in models_data if isinstance(item, dict) and item.get("id")}
+    ) if isinstance(models_data, list) else []
+    image_model_ids = [model_id for model_id in model_ids if "image" in model_id.lower() or "dall" in model_id.lower()]
+
+    images_body = images_result.get("body") if isinstance(images_result.get("body"), dict) else {}
+    images_ok = images_result.get("status") == 200 and image_data_in_body(images_body)
+
+    responses_body = responses_result.get("body") if isinstance(responses_result.get("body"), dict) else {}
+    responses_summary = summarize_responses_output(responses_body) if responses_result.get("status") == 200 else {
+        "output_types": [],
+        "has_image_generation_call": False,
+    }
+    responses_ok = bool(responses_summary["has_image_generation_call"])
+
+    if images_ok:
+        recommendation = "image-api: /v1/images/generations returned API image data."
+    elif responses_ok:
+        recommendation = "responses-image-tool: /v1/responses returned an image_generation_call result."
+    elif model in model_ids:
+        recommendation = "prompt-only: requested model is listed, but the image endpoint/tool did not return API image data."
+    else:
+        recommendation = "prompt-only: requested image model is not visible and no image endpoint/tool returned API image data."
+
+    return {
+        "base_url": base_url,
+        "model": model,
+        "can_generate_image": images_ok or responses_ok,
+        "recommendation": recommendation,
+        "models": {
+            "ok": models_result.get("status") == 200,
+            "status": models_result.get("status"),
+            "elapsed_s": models_result.get("elapsed_s"),
+            "model_count": len(model_ids),
+            "has_requested_model": model in model_ids,
+            "image_models": image_model_ids,
+            "sample_models": model_ids[:15],
+            **({} if models_result.get("status") == 200 else {"error": summarize_error(models_body)}),
+        },
+        "images_generations": {
+            "ok": images_ok,
+            "status": images_result.get("status"),
+            "elapsed_s": images_result.get("elapsed_s"),
+            "has_image_data": image_data_in_body(images_body),
+            "event_count": images_body.get("event_count"),
+            "event_types": images_body.get("event_types", []),
+            **({} if images_ok else {"error": summarize_error(images_body)}),
+        },
+        "responses_image_tool": {
+            "ok": responses_ok,
+            "status": responses_result.get("status"),
+            "elapsed_s": responses_result.get("elapsed_s"),
+            **responses_summary,
+            **({} if responses_result.get("status") == 200 else {"error": summarize_error(responses_body)}),
+        },
+    }
 
 
 def image_b64_from_event(event: dict) -> str | None:
@@ -308,14 +519,16 @@ def save_streamed_image_events(events: list[dict], output: Path) -> list[str]:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Generate images via gpt-image-2 compatible streaming API.")
+    parser.add_argument("--probe", action="store_true", help="Probe provider image-generation capability and print JSON.")
     parser.add_argument("--prompt")
     parser.add_argument("--prompt-file")
-    parser.add_argument("--output", required=True, help="Final image path.")
+    parser.add_argument("--output", help="Final image path.")
     parser.add_argument("--prompt-output", help="Prompt archive path. Defaults beside --output.")
     parser.add_argument("--report-output", help="JSON report path. Defaults beside --output.")
     parser.add_argument("--base-url")
     parser.add_argument("--api-key")
     parser.add_argument("--codex-profile", help="Read provider settings from a named ~/.codex/config.toml profile.")
+    parser.add_argument("--response-model", default=os.environ.get("OPENAI_RESPONSE_MODEL", "gpt-5.5"))
     parser.add_argument("--model", default=os.environ.get("OPENAI_IMAGE_MODEL", "gpt-image-2"))
     parser.add_argument("--size", default="1024x1024")
     parser.add_argument("--quality", default="high", choices=["auto", "low", "medium", "high"])
@@ -332,8 +545,68 @@ def parse_args() -> argparse.Namespace:
     return build_parser().parse_args()
 
 
+def run_probe(args: argparse.Namespace) -> dict:
+    key = get_api_key(args.api_key, args.codex_profile)
+    base = normalize_base_url(args.base_url, args.codex_profile)
+    headers = provider_headers(args.codex_profile)
+    query_params = provider_query_params(args.codex_profile)
+
+    models_result = request_json_result(
+        append_query_params(f"{base}/models", query_params),
+        key,
+        extra_headers=headers,
+        method="GET",
+        timeout=60,
+    )
+    image_payload = build_generation_payload(
+        model=args.model,
+        prompt="A tiny simple blue square icon on a plain white background.",
+        size="1024x1024",
+        quality="low",
+        n=1,
+        output_format="png",
+        output_compression=None,
+        background=None,
+        moderation="auto",
+        partial_images=0,
+    )
+    images_result = request_stream_result(
+        append_query_params(f"{base}/images/generations", query_params),
+        key,
+        image_payload,
+        headers,
+    )
+    responses_result = request_json_result(
+        append_query_params(f"{base}/responses", query_params),
+        key,
+        {
+            "model": args.response_model,
+            "input": "Use the image_generation tool to generate a simple blue square icon. Do not answer with text only.",
+            "tools": [{"type": "image_generation", "action": "generate", "partial_images": 0}],
+        },
+        headers,
+        timeout=120,
+    )
+    return build_probe_report(
+        base_url=base,
+        model=args.model,
+        models_result=models_result,
+        images_result=images_result,
+        responses_result=responses_result,
+    )
+
+
 def main() -> int:
     args = parse_args()
+    if args.probe:
+        report = run_probe(args)
+        if args.report_output:
+            path = Path(args.report_output)
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
+        print(json.dumps(report, ensure_ascii=False, indent=2))
+        return 0
+
     prompt = read_prompt(args)
     paths = resolve_output_paths(args)
     key = get_api_key(args.api_key, args.codex_profile)

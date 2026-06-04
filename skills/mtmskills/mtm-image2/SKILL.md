@@ -20,7 +20,7 @@ description: Use when **当进行任何生图操作,调用 gpt-image-2 模型 AP
 ## 先判断
 
 1. 用户要真实图片、产品图、海报、主视觉、角色、插画、信息图或 UI mockup 时，本技能优先于通用 `imagegen`/本地绘图流程。
-2. 先确认可用的 OpenAI Images API、Responses image tool 或兼容图片端点。
+2. 先运行 `scripts/mtm_image_gen.py --probe` 确认 Images API 或 Responses image tool 能返回真实图片数据；`/v1/models` 列出 `gpt-image-2` 只能作为旁证。
 3. Codex app 有 shell 时，优先用 `scripts/mtm_image_gen.py` 的流式 Image API 路径；无 shell 时输出完整图片 brief 和最终 prompt。
 4. 没有图片能力时，只能交付 prompt，不声明已经生成图片。
 
@@ -48,10 +48,16 @@ description: Use when **当进行任何生图操作,调用 gpt-image-2 模型 AP
 
 ## 脚本
 
-- `scripts/mtm_image_gen.py`：Python 3 标准库脚本，只调用 `/v1/images/generations` 流式生图；优先复用当前进程的 `OPENAI_*` 环境变量，并读取 Codex provider 的 base URL、headers、query params。
+- `scripts/mtm_image_gen.py`：Python 3 标准库脚本，正常生图只调用 `/v1/images/generations` 流式接口；`--probe` 会额外检查 `/v1/models` 与 `/v1/responses` image tool，用于判定上游是否真的支持图片生成。
 - `templates/prompt-brief.md`：Codex app / 普通用户 brief 模板。
 
 ## 常见问题与修复
+
+0. 先跑能力探测:
+```bash
+python scripts/mtm_image_gen.py --probe --report-output /tmp/mtm-image2-probe.json
+```
+只有 `can_generate_image: true` 才能继续声明可出图；如果只是 `models.has_requested_model: true`，但 `images_generations.ok: false` 且 `responses_image_tool.has_image_generation_call: false`，只能进入 `prompt-only`。
 
 1. 如果用户的 .codex/.env 文件不存在,可能导致生图程序出错,因为生图python依赖环境变量. 如果确实遇到这个问题,应当:
     1.1 阅读: `~/.codex/auth.json` 和 `~/.codex/config.toml`文件,确认用户正确配置了 api_key 和 base_url, 并主动创建确保`~/.codex/.env`存在这个环境变量. codex 需要重启后才能加载环境变量, 应当提醒用户重启codex.
@@ -74,3 +80,8 @@ OPENAI_API_KEY="sk-{需要用户提供真实sub2api admin的key}"
 OPENAI_API_BASE="https://{需要用户提供真实sub2api admin的base_url}"
 ```
 2. 如果OPENAI_API_KEY和OPENAI_API_BASE的具体值不清楚,先读取`~/.codex/auth.json` 和 `~/.codex/config.toml`文件,可能已经存在对应的值. 按照已有的值修正.env 文件,并要求用户重启codex. 如果缺失找不到,应主动向用户索取,拿到后主动完成修正,并要求用户重启codex. 注意是重启,而不是关闭窗口在打开. 通常电脑右下角有codex 托盘图标,右键菜单点击"退出",然后再打开codex
+
+3. 如果 `--probe` 显示:
+   - `images_generations.status = 403` 且 message 类似 `Image generation is not enabled for this group`：上游账号组未开图片能力，需要在上游启用图片模型/权限或换可用上游。
+   - `images_generations.status = 502`：公网域名在线不等于图片端点可用，通常是上游 origin/网关对 Images API 转发异常；应修上游或切换到能直接完成 `/v1/images/generations` 的 base URL。
+   - `responses_image_tool.status = 200` 但只返回 `message` / `output_text`，甚至返回 SVG 文本：这不是 GPT Image 出图，不能当成最终图片结果。

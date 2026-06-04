@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import base64
+import io
 import importlib.util
 import os
 import sys
 import tempfile
+import urllib.error
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -17,6 +19,12 @@ SPEC = importlib.util.spec_from_file_location("mtm_image_gen", SCRIPT)
 assert SPEC is not None and SPEC.loader is not None
 mtm_image_gen = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(mtm_image_gen)
+
+
+def json_dumps(value: object) -> str:
+    import json
+
+    return json.dumps(value, ensure_ascii=False, sort_keys=True)
 
 
 class StreamingImagesTest(unittest.TestCase):
@@ -128,6 +136,86 @@ api-version = "2026-05-23"
         self.assertNotIn("abcdef1234567890", redacted)
         self.assertIn("sk-***REDACTED***", redacted)
         self.assertIn("Bearer ***REDACTED***", redacted)
+
+    def test_build_probe_report_does_not_treat_model_visibility_as_image_support(self) -> None:
+        models_result = {
+            "status": 200,
+            "elapsed_s": 0.1,
+            "body": {"data": [{"id": "gpt-5.5"}, {"id": "gpt-image-2"}]},
+        }
+        images_result = {
+            "status": 502,
+            "elapsed_s": 0.2,
+            "body": {
+                "title": "Error 502: Bad gateway",
+                "detail": "The origin web server returned an invalid or incomplete response to Cloudflare.",
+            },
+        }
+        responses_result = {
+            "status": 200,
+            "elapsed_s": 0.3,
+            "body": {
+                "output": [
+                    {
+                        "type": "message",
+                        "content": [{"type": "output_text", "text": "<svg width=\"512\"></svg>"}],
+                    }
+                ]
+            },
+        }
+
+        report = mtm_image_gen.build_probe_report(
+            base_url="https://relay.example.com/v1",
+            model="gpt-image-2",
+            models_result=models_result,
+            images_result=images_result,
+            responses_result=responses_result,
+        )
+
+        self.assertFalse(report["can_generate_image"])
+        self.assertTrue(report["models"]["has_requested_model"])
+        self.assertFalse(report["images_generations"]["ok"])
+        self.assertFalse(report["responses_image_tool"]["has_image_generation_call"])
+        self.assertIn("prompt-only", report["recommendation"])
+        self.assertNotIn("sk-", json_dumps(report))
+
+    def test_parse_args_allows_probe_without_output_or_prompt(self) -> None:
+        argv = [
+            "mtm_image_gen.py",
+            "--probe",
+            "--base-url",
+            "https://relay.example.com",
+            "--api-key",
+            "sk-test1234567890",
+        ]
+
+        with patch.object(sys, "argv", argv):
+            args = mtm_image_gen.parse_args()
+
+        self.assertTrue(args.probe)
+        self.assertIsNone(args.output)
+        self.assertIsNone(args.prompt)
+
+    def test_stream_http_error_mentions_probe_next_step(self) -> None:
+        error = urllib.error.HTTPError(
+            "https://relay.example.com/v1/images/generations",
+            502,
+            "Bad gateway",
+            {},
+            io.BytesIO(b"Cloudflare 502 Bad gateway"),
+        )
+
+        with patch.object(mtm_image_gen.urllib.request, "urlopen", side_effect=error):
+            with self.assertRaises(SystemExit) as err:
+                mtm_image_gen.request_stream(
+                    "https://relay.example.com/v1/images/generations",
+                    "sk-test1234567890",
+                    {"model": "gpt-image-2", "prompt": "x"},
+                )
+
+        message = str(err.exception)
+        self.assertIn("--probe", message)
+        self.assertNotIn("sk-test1234567890", message)
 
     def test_build_generation_payload_includes_streaming_options(self) -> None:
         payload = mtm_image_gen.build_generation_payload(
