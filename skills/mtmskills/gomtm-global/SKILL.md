@@ -97,8 +97,14 @@ npx ts-prune ...
 # TypeScript 类型检查 + Lint（涉及前端代码时）
 bun run check
 
-# 数据库 pgTAP 测试（涉及数据库逻辑变更时）
-bash testing/db-testing.sh
+# Supabase 手工 SQL（当前生产 Supabase，必须确认任务已批准）
+source /workspace/gomtm/.env && psql "$SUPABASE_DATABASE_URL" -c "SELECT count(1) FROM public.sys_logs;"
+
+# 数据库 pgTAP 聚焦测试（涉及数据库逻辑变更时，测试文件在 gomtmui）
+cd /workspace/gomtmui && bun run db:test -- <test-file>
+
+# 数据库 pgTAP 全量测试（仅 Issue 明确批准时）
+cd /workspace/gomtmui && bun run db:test
 
 # 集成测试（完整验证）
 go test -v ./testing/integration/...
@@ -122,12 +128,7 @@ bun run check
 npx ts-prune --project {projectRoot}/tsconfig.json
 
 # 生成 mtmsdk openapi 客户端,含typescript,golang 客户端, 以及相关typescript supabase 类型定义
-gomtm gen
-
-# 部署 (开发环境)
-gomtm deploy --skip-test=e2e
-
-gomtm deploy --prod ...
+cd /workspace/gomtmui && bun run gen
 
 # 运行集成测试
 go test -v ./testing/integration/...
