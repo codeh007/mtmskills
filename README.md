@@ -60,6 +60,10 @@ skills/
 
 - https://github.com/garrytan/gstack
 
+# 编程规范及优化
+
+- https://github.com/DietrichGebert/ponytail
+
 
 # 优化工具
 
@@ -69,3 +73,8 @@ skills/
 # 设计类skill
 
 - [Impeccable](https://github.com/pbakaus/impeccable)
+- [baoyu skills](https://github.com/jimliu/baoyu-skills) 22k starts
+
+# 其他
+
+- [shadcn 作者 improve skills] (https://github.com/shadcn/improve)
