@@ -80,7 +80,7 @@
 
 ## 用法
 
-1. 先运行分类步骤（见 `categorize-prompt.md`）
+1. 先运行分类步骤（见 `semantic-duplicate-functions-categorize-prompt.md`）
 2. 过滤 `categorized.json`，取出某一个分类的函数：
    ```bash
    jq '[.[] | select(.category == "validation")]' categorized.json > validation-functions.json

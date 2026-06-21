@@ -63,6 +63,8 @@ Common actions:
 - merge copies into one implementation
 - keep behavior-focused verification around the unified path
 
+When the duplicate is not textually obvious, use `semantic-duplicate-functions.md` to build a candidate inventory before choosing a consolidation batch.
+
 ### Multi-Responsibility Structure
 
 One middleware, hook, provider, helper, or module handles several unrelated jobs and forces unrelated changes to land in the same place.

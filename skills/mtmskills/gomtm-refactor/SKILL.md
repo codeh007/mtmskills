@@ -16,7 +16,7 @@ This skill controls the round. Detailed smell rules and stack-specific guidance 
 ## When to Use
 
 - after a large feature, migration, or implementation batch is already working and needs structural cleanup
-- when thin wrappers, single-consumer abstractions, duplicate implementations, compatibility leftovers, or local fragmentation start accumulating
+- when thin wrappers, single-consumer abstractions, duplicate implementations, semantic duplicate functions, compatibility leftovers, or local fragmentation start accumulating
 - when a periodic refactor pass should normalize already-correct code without changing product behavior
 
 Do not use this skill as the starting point for net-new feature design or opportunistic product changes.
@@ -37,6 +37,8 @@ Load `references/workflow.md` first when you need the detailed round structure f
 Load the matching topic references for the current batch:
 
 - `references/smell-catalog.md`: cross-stack smells such as thin wrappers, duplicate implementations, single-consumer abstractions, obsolete compatibility branches, and structure-self-proof tests
+- `references/behavior-equivalence.md`: guardrails for behavior-preserving cleanup, GitNexus impact checks, high-risk runtime/installer boundaries, and verification choices
+- `references/semantic-duplicate-functions.md`: workflow for finding same-purpose functions with different names or implementations; uses prompts and scripts under this skill
 - `references/frontend-structure.md`: frontend route boundaries, provider/header/module-shell facades, export-only files, wrapper-only tests, and other UI structure cleanup
 - `references/go-backend.md`: Go and backend convergence topics such as package boundaries, interface misuse, context misuse, glue-code drift, and shell-command overreach
 - `references/testing.md`: regression-focused test cleanup, anti-patterns, and choosing the right verification layer
@@ -45,6 +47,7 @@ Load the matching topic references for the current batch:
 ## Tooling Guidance
 
 - Use GitNexus, graphify, LSP or IDE navigation, static analysis, and `grep` or `glob` as candidate hotspot finders.
+- For semantic duplicate functions in TypeScript/JavaScript, use `scripts/duplicate-functions/` and the `semantic-duplicate-functions` references as candidate finders.
 - Treat tool output as discovery input only. Tools can suggest where to look; they do not decide what is safe to delete or inline.
 - Before changing structure, confirm the real consumers, current ownership boundary, and available verification path in the source itself.
 - Do not batch-delete wrappers, files, tests, or compatibility branches only because a tool report makes them look redundant.

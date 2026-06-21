@@ -53,7 +53,7 @@
 
 ## 用法
 
-1. 运行提取：`./extract-functions.sh src/ -o catalog.json`
+1. 运行提取：`scripts/duplicate-functions/extract-functions.sh src/ -o catalog.json`
 2. 使用上面的 prompt 派发 haiku 子代理，并替换：
    - 将 `<CATALOG_PATH>` 替换为 `catalog.json` 的路径
    - 将 `<OUTPUT_PATH>` 替换为期望的输出路径（例如 `categorized.json`）
