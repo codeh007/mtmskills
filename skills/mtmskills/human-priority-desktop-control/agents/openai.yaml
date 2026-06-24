@@ -1,0 +1,4 @@
+interface:
+  display_name: "Human-Priority Desktop Control"
+  short_description: "Control Windows desktop with UIA and human override"
+  default_prompt: "Use $human-priority-desktop-control to operate the Windows desktop with UI Automation, guarded mouse/keyboard actions, screenshots, and pauses whenever the human user takes over."
