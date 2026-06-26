@@ -65,9 +65,10 @@ skills/
 - https://github.com/DietrichGebert/ponytail
 
 
-# 优化工具
+# 优化-压缩-节省token
 
 - [rtk](https://www.rtk-ai.app)
+- [headroom](https://github.com/headroomlabs-ai/headroom) - 视频: https://www.youtube.com/watch?v=UXfkQokND4g Headroom compresses everything your AI agent reads — tool outputs, logs, RAG chunks, files, and conversation history — before it reaches the LLM. Same answers, fraction of the tokens.
 
 
 # 设计类skill
