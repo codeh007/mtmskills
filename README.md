@@ -26,7 +26,7 @@ gomtm skills link .
 远程机器或只读环境可以继续使用 `npx skills` 做复制式安装，但这不应作为本机源码开发工作流：
 
 ```bash
-npx skills add https://github.com/codeh007/mtmskills --all --global --yes
+npx skills add codeh007/mtmskills --all --global --yes
 ```
 
 ## 目录结构
