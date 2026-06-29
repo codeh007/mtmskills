@@ -40,14 +40,6 @@ skills/
 
 `SKILL.md` frontmatter `name` 仍是技能名；`gomtm skills link .` 默认保留目录级 namespace，并分别链接到 Codex、Hermes Agent、Claude Code 的用户级技能目录。
 
-## 贡献
-
-- 技能名使用小写 `hyphen-case`。
-- `SKILL.md` frontmatter 保持 `name` 和 `description` 两个必要字段。
-- `description` 只写触发条件，不写流程摘要。
-- 技能应自包含；不要依赖私有路径、密钥或本机环境。
-- 只有确实需要时才添加 `scripts/`、`references/`、`assets/`。
-
 # 收集的技能仓库
 
 - https://github.com/anthropics/skills
