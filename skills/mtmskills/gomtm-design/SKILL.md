@@ -14,6 +14,7 @@ description: Use when designing, implementing, or refactoring gomtm/gomtmui UI s
 3. 图标优先表达工具动作；不熟悉的图标必须配 `Tooltip`、`aria-label` 或 `sr-only` 文本。
 4. 简洁优先：不要用说明文案堆叠来弥补信息架构不清。
 5. 不滥用 `<Card />`：卡片只用于重复记录项、弹窗内容或真正需要框定的工具，不把页面 section 套成 card，更不要 card-in-card。
+6. datatable 采用 column-first 约定：桌面表格和移动摘要共用同一份 `ColumnDef<TData>[]`，`columnDef.meta.mobile` 决定是否进入移动摘要；`flexRender` 只负责渲染列定义，不承载查询、分页、筛选、排序或选择状态。
 
 ## 组件选择
 

@@ -2,77 +2,118 @@
 
 ## 核心判断
 
-datatable 是列表视图的一种特殊形式，只在用户确实需要逐列比较、排序、过滤、分页、列显隐、行选择或复制表格数据时使用。
+datatable 只在用户确实需要逐列比较、排序、过滤、分页、列显隐、行选择或复制表格数据时使用。它是列表视图的一种特殊形式，不是默认的对象列表形态。
 
-在 gomtmui 中，优先使用 shadcn/ui `Table` 作为可访问表格外壳，使用 `@tanstack/react-table` 作为 headless 状态机。shadcn data-table 文档是组合指南，不是一个应该到处复制的通用组件。
+在 gomtmui 中，桌面表格使用 `@tanstack/react-table` + shadcn/ui `Table` 壳层。列定义是唯一来源：桌面表格、移动端摘要、复制动作、状态标签、指标字段都从同一份 `ColumnDef<TData>[]` 推导，不再维护第二份“移动版字段清单”。
 
 ## 必读来源
 
 实现前重新核对官方文档和本地组件：
 
-| 主题 | 来源 |
-| --- | --- |
-| shadcn data-table 组合模式 | `https://ui.shadcn.com/docs/components/data-table` |
-| shadcn Table 外壳 | `https://ui.shadcn.com/docs/components/table` 和 `src/components/ui/table.tsx` |
-| TanStack React adapter | `https://tanstack.com/table/latest/docs/framework/react/react-table` |
-| 数据稳定引用 | `https://tanstack.com/table/latest/docs/guide/data` |
-| 列定义、accessor、display column | `https://tanstack.com/table/latest/docs/guide/column-defs` |
+- `https://tanstack.com/table/latest/docs/guide/data`
+- `https://tanstack.com/table/latest/docs/guide/cells`
+- `https://tanstack.com/table/latest/docs/guide/column-defs`
+- `https://ui.shadcn.com/docs/components/data-table`
+- `https://ui.shadcn.com/docs/components/table`
 
-依赖与本地组件检查使用仓库包管理器：
-
-```bash
-bunx --bun shadcn@latest info --json
-bunx --bun shadcn@latest docs table
-npm view @tanstack/react-table version
-```
-
-若 `bunx` 因缓存 link 失败，改用隔离缓存重试：
-
-```bash
-BUN_INSTALL_CACHE_DIR=/tmp/bun-cache-gomtmui bunx --bun shadcn@latest docs table
-```
+同时检查本仓库的表格外壳与现有实现约定，避免照搬外部示例时引入不兼容写法。
 
 ## 实施流程
 
-1. 先读 [列表视图](list-view.md)，确认该页面真的需要 table。
-2. 定义行类型 `TData`。真实后端数据用 schema、生成类型或适配层收窄；不要为了表格方便写 `as any`。
-3. 判断数据规模和一致性要求：
-   - 小数据、一次性加载：使用客户端 sorting/filtering/pagination row models。
-   - 后端分页、审计记录、费用记录、运维列表：使用 `manualPagination`、`manualSorting`、`manualFiltering`，把状态写回 URL/query。
-4. 把列定义与渲染拆到同域 `columns.tsx`。列必须是稳定引用：模块级常量、`useMemo`，或函数返回但由调用方 `useMemo` 包住。
-5. 表格组件只负责 table instance、toolbar、table markup、empty/loading/error、pagination 和移动端替代表达。
-6. 每个交互能力只接入需要的 TanStack state：`SortingState`、`ColumnFiltersState`、`VisibilityState`、`RowSelectionState`、`PaginationState`。
-7. 宽表必须有移动端替代：桌面显示 `<Table>`，移动端显示同数据的 list/item/card 摘要；不要只靠横向滚动处理手机主流程。
-8. 验证 `bun run check`。改了真实页面时补充组件测试或浏览器截图，至少覆盖空数据、长文本、分页边界和排序状态。
+1. 先读 [列表视图](list-view.md)，确认这个页面真的需要 datatable。
+2. 定义行类型 `TData`。真实后端数据用 schema、生成类型或适配层收窄，不要为了表格方便写 `as any`。
+3. 先定义列，再定义表格壳层。列定义必须是稳定引用：模块级常量、`useMemo`，或函数返回后由调用方 `useMemo` 包住。
+4. 用 `useReactTable` 组织状态机；查询、分页、筛选、排序、列显隐、行选择都属于 table state，不属于 `flexRender`。
+5. 桌面表格只负责渲染 `<Table>`；移动端摘要只负责渲染同一份列契约对应的记录卡。
+6. 宽表必须有移动端替代表达，不能只靠横向滚动解决手机主流程。
 
-## gomtmui 组件边界
+## 列契约
 
-当前 gomtmui 使用 Next.js App Router、React、TypeScript、Tailwind、shadcn/ui 与 Base UI 组件封装。照搬官方示例前必须检查本地 `src/components/ui/*` 的 API。
+1. `ColumnDef<TData>` 是唯一数据契约来源。
+2. `accessorKey` 或 `accessorFn` 负责提供稳定数据，`cell` 负责 UI 表达，不能把业务状态塞进 JSX 里再反向解析。
+3. `columnDef.meta.mobile` 是移动摘要契约。未声明 `meta.mobile` 的列默认不进入移动摘要。
+4. `columnDef.meta.mobile` 只描述移动端如何展示，不负责查询、分页、排序、过滤或权限判断。
+5. 桌面列与移动摘要共享同一份列定义；任何新增字段都先改列定义，再决定是否落入移动摘要。
+6. `flexRender` 只负责把 `header`、`cell`、`footer` 等列定义渲染出来，不负责保存或派生页面状态。
 
-特别注意：本仓库 `DropdownMenuTrigger` 是 Base UI wrapper，现有代码使用 `render={<Button ... />}`，不要直接复制 Radix 示例中的 `asChild`。
+推荐的 `meta.mobile` 形态：
+
+```tsx
+type MobileMeta = {
+  mobile?: {
+    slot: "title" | "summary" | "status" | "metric" | "action" | "copy";
+    priority?: number;
+    hidden?: boolean;
+  };
+};
+```
+
+可执行规则：
+
+- `title` 只放主身份信息，例如名称、标题、设备名。
+- `summary` 放 1 到 2 个辅助事实，例如平台、来源、最近时间。
+- `status` 放状态、类型、权限类标签，通常渲染 `BadgeCell`。
+- `metric` 放数值、计数、额度、速率类字段，通常渲染 `MetricCell`。
+- `action` 放单个高频动作或动作组，通常渲染 `ActionCell`。
+- `copy` 放短 ID、URL、密钥片段、可复制文本，通常渲染 `CopyCell`。
+- `hidden: true` 表示移动端完全不展示该列，但桌面仍可保留。
+
+## 桌面与移动边界
+
+- `DataTableShell` 只管桌面表格壳层：toolbar、列显隐、分页、空态、错误态、`Table` 结构。
+- `MobileRecordCard` 只管 `md` 以下的摘要结构：标题、状态、关键摘要、底部动作。
+- `TextCell`、`BadgeCell`、`MetricCell`、`ActionCell`、`CopyCell` 是可组合原语，不是页面级容器。
+- 没有 `meta.mobile` 的列默认不进入移动摘要；需要移动展示时必须显式声明。
+- 桌面和移动端的字段顺序应由列定义统一决定，不允许桌面一套顺序、移动端另一套顺序。
+
+## 组件拆分
+
+### `DataTableShell`
+
+适合承载这些内容：
+
+- 桌面端表头与表体。
+- 列显隐菜单。
+- 排序、分页、行选择等 table state。
+- 空数据、加载中、错误态。
+
+不适合承载这些内容：
+
+- 页面查询参数解析。
+- 后端查询拼接逻辑。
+- 移动摘要卡的字段重组。
+- 业务详情页的长文本拼装。
+
+### `MobileRecordCard`
+
+适合承载这些内容：
+
+- 主标题与次标题。
+- 1 到 3 个最重要的状态或摘要块。
+- 1 到 2 个高频动作。
+- 长 ID、可复制内容、短指标。
+
+不适合承载这些内容：
+
+- 全量列展示。
+- 横向滚动表格。
+- 复杂筛选表单。
+- 完整详情、错误全文、命令全文。
+
+### `TextCell` / `BadgeCell` / `MetricCell` / `ActionCell` / `CopyCell`
+
+- `TextCell`：普通文本、长文本、次级说明。
+- `BadgeCell`：状态、标签、权限、类型。
+- `MetricCell`：数值、计数、速率、额度。
+- `ActionCell`：按钮、链接、菜单入口。
+- `CopyCell`：复制文本、短 ID、URL、外部引用。
+
+这些原语只负责自己的视觉语义，不负责数据拉取，也不负责决定列是否出现在移动摘要。
 
 ## 推荐骨架
 
 ```tsx
-"use client";
-
-import {
-  flexRender,
-  getCoreRowModel,
-  useReactTable,
-  type ColumnDef,
-  type VisibilityState,
-} from "@tanstack/react-table";
-import { ChevronDown, Columns3 } from "lucide-react";
-import { useMemo, useState } from "react";
-import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuCheckboxItem,
-  DropdownMenuContent,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { flexRender, getCoreRowModel, useReactTable, type ColumnDef } from "@tanstack/react-table";
 
 type Row = {
   id: string;
@@ -80,112 +121,73 @@ type Row = {
   status: string;
 };
 
-type DataTableProps = {
-  items: Row[];
-  pageCount: number;
-  onSort: (columnId: string) => void;
+type MobileMeta = {
+  mobile?: {
+    slot: "title" | "summary" | "status" | "metric" | "action" | "copy";
+    priority?: number;
+    hidden?: boolean;
+  };
 };
 
-export function DataTable({ items, onSort, pageCount }: DataTableProps) {
-  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
+const columns: ColumnDef<Row, unknown>[] = [
+  {
+    accessorKey: "name",
+    header: "名称",
+    cell: ({ row }) => <TextCell value={row.original.name} />,
+    meta: { mobile: { slot: "title", priority: 1 } } satisfies MobileMeta,
+  },
+  {
+    accessorKey: "status",
+    header: "状态",
+    cell: ({ row }) => <BadgeCell value={row.original.status} />,
+    meta: { mobile: { slot: "status", priority: 2 } } satisfies MobileMeta,
+  },
+  {
+    accessorKey: "id",
+    header: "ID",
+    cell: ({ row }) => <CopyCell value={row.original.id} />,
+    meta: { mobile: { slot: "copy", priority: 3 } } satisfies MobileMeta,
+  },
+];
 
-  const columns = useMemo<ColumnDef<Row>[]>(
-    () => [
-      {
-        accessorKey: "name",
-        header: () => (
-          <Button type="button" variant="ghost" size="sm" onClick={() => onSort("name")}>
-            名称
-          </Button>
-        ),
-        cell: ({ row }) => <span className="font-medium">{row.original.name}</span>,
-        enableHiding: false,
-      },
-      {
-        accessorKey: "status",
-        header: "状态",
-        cell: ({ row }) => row.original.status,
-      },
-    ],
-    [onSort],
-  );
-
+export function DataTableShell({ items }: { items: Row[] }) {
   const table = useReactTable({
     data: items,
     columns,
     getCoreRowModel: getCoreRowModel(),
-    manualPagination: true,
-    manualSorting: true,
-    pageCount: Math.max(pageCount, 1),
-    state: { columnVisibility },
-    onColumnVisibilityChange: setColumnVisibility,
   });
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex justify-end">
-        <DropdownMenu>
-          <DropdownMenuTrigger
-            render={
-              <Button type="button" variant="outline" size="sm">
-                <Columns3 />
-                列
-                <ChevronDown />
-              </Button>
-            }
-          />
-          <DropdownMenuContent align="end" className="w-44">
-            {table
-              .getAllColumns()
-              .filter((column) => column.getCanHide())
-              .map((column) => (
-                <DropdownMenuCheckboxItem
-                  key={column.id}
-                  checked={column.getIsVisible()}
-                  onCheckedChange={(checked) => column.toggleVisibility(Boolean(checked))}
-                >
-                  {column.id}
-                </DropdownMenuCheckboxItem>
-              ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
-
-      {/* 移动端必须提供同数据摘要视图，例如 <MobileRecords items={items} />。 */}
-
-      <div className="hidden overflow-x-auto rounded-md border md:block">
-        <Table aria-label="数据表" className="min-w-[48rem] table-fixed">
-          <TableHeader>
+    <>
+      <div className="hidden md:block">
+        <table>
+          <thead>
             {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id}>
+              <tr key={headerGroup.id}>
                 {headerGroup.headers.map((header) => (
-                  <TableHead key={header.id}>
+                  <th key={header.id}>
                     {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
-                  </TableHead>
+                  </th>
                 ))}
-              </TableRow>
+              </tr>
             ))}
-          </TableHeader>
-          <TableBody>
-            {table.getRowModel().rows.length ? (
-              table.getRowModel().rows.map((row) => (
-                <TableRow key={row.id}>
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
-                  ))}
-                </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell colSpan={columns.length} className="h-28 text-center text-muted-foreground">
-                  暂无数据
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
+          </thead>
+          <tbody>
+            {table.getRowModel().rows.map((row) => (
+              <tr key={row.id}>
+                {row.getVisibleCells().map((cell) => (
+                  <td key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
-    </div>
+
+      <div className="md:hidden">
+        <MobileRecordCard items={items} columns={columns} />
+      </div>
+    </>
   );
 }
 ```
@@ -194,21 +196,20 @@ export function DataTable({ items, onSort, pageCount }: DataTableProps) {
 
 | 场景 | 做法 |
 | --- | --- |
-| 后端已经分页/排序 | `manualPagination: true`、`manualSorting: true`，不要引入对应客户端 row model |
-| 客户端小表 | 加 `getPaginationRowModel`、`getSortedRowModel`、`getFilteredRowModel` |
-| accessor 值要排序/过滤 | accessor 返回 primitive；复杂 JSX 放 `cell` |
-| action/select/expand 列 | 用 display column，设置明确 `id`，通常 `enableHiding: false` |
-| 列显隐菜单 | `VisibilityState` + `getAllColumns().filter(getCanHide)` |
-| 长文本字段 | cell 内使用 `truncate`、`break-all` 或 `whitespace-normal`，并设置稳定宽度 |
-| 手机端 | 用同数据的移动端摘要列表，不把密集表格硬塞进小屏 |
-| 图标按钮 | 用 lucide 图标，纯图标按钮必须有 `aria-label` 或 `sr-only` 文本 |
+| 桌面端密集比较 | 用 `DataTableShell` + `Table` |
+| 手机端摘要 | 用 `MobileRecordCard`，按 `columnDef.meta.mobile` 组装 |
+| 文本、状态、指标、动作、复制 | 分别用 `TextCell`、`BadgeCell`、`MetricCell`、`ActionCell`、`CopyCell` |
+| 需要隐藏移动端字段 | 给列加 `meta.mobile.hidden = true` |
+| 需要固定移动端顺序 | 调整 `meta.mobile.priority`，不要另写第二套字段表 |
+| 需要复制动作 | 用 `CopyCell`，不要把复制逻辑塞进普通 `TextCell` |
 
 ## 常见错误
 
-1. 直接复制 Radix 示例中的 `asChild` 到本仓库 Base UI 组件。
-2. 在组件 render 内直接写 `const data = []` 或 `const columns = []` 后传给 `useReactTable`。
-3. 服务端分页却启用客户端排序/过滤，导致只排序当前页。
-4. 用 display-only JSX 做 accessor，后续排序过滤拿不到稳定 primitive。
-5. 为了宽表嵌套 Card 或 card-in-card；表格外层使用普通 section/toolbar，只有重复记录或移动端摘要才用轻量 card。
-6. 空状态只渲染空 `<tbody>`；必须提供可见空行或标准 empty state。
-7. 分页、筛选、排序只存在客户端 state，刷新或分享 URL 后状态丢失。
+1. 把桌面表格和移动摘要拆成两份列定义，后续字段不同步。
+2. 让 `flexRender` 承担查询、排序、分页或筛选状态。
+3. 只在桌面端实现 `Table`，手机端没有同数据摘要。
+4. 新增列后忘了补 `columnDef.meta.mobile`，导致手机端静默缺字段。
+5. 让 `meta.mobile` 变成第二套业务逻辑，而不是展示契约。
+6. 用 `TextCell` 直接塞长命令、完整错误全文或可编辑表单。
+7. 为了“整齐”把 `DataTableShell` 做成页面级容器，结果 toolbar、table、空态、移动摘要混在一起。
+8. 复制类字段不用 `CopyCell`，而是手写一堆不一致的按钮和 tooltip。
