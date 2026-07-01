@@ -58,6 +58,39 @@ type MobileMeta = {
 - `copy` 放短 ID、URL、密钥片段、可复制文本，通常渲染 `CopyCell`。
 - `hidden: true` 表示移动端完全不展示该列，但桌面仍可保留。
 
+## 自适应列宽与溢出控制
+
+列宽是表格契约，不是 cell 内部样式猜测。每个桌面列必须通过 `ColumnDef` 的 `size/minSize/maxSize` 或 `columnDef.meta.table` 声明尺寸和溢出类型，再由表格壳层统一渲染到 `colgroup`、`TableHead` 和 `TableCell`。
+
+推荐的 `meta.table` 形态：
+
+```tsx
+type TableColumnOverflow = "truncate" | "wrap" | "nowrap" | "visible";
+
+type TableColumnMeta = {
+  size?: number;
+  minSize?: number;
+  maxSize?: number;
+  align?: "left" | "center" | "right";
+  priority?: "identity" | "content" | "metric" | "action" | "low";
+  overflow?: TableColumnOverflow;
+  className?: string;
+  headerClassName?: string;
+  cellClassName?: string;
+};
+```
+
+执行规则：
+
+1. 优先使用 TanStack Column Sizing 的 `size/minSize/maxSize` 和 `column.getSize()`；`meta.table` 只补充 gomtmui 的对齐、优先级和溢出语义。
+2. `DataTableShell` 必须生成 `colgroup` 并计算表格最小宽度；当总列宽超过容器时，只允许表格整体横向滚动。
+3. `TableCell` 默认必须允许内容收缩：`min-w-0 overflow-hidden align-top`。
+4. 不把 `whitespace-nowrap` 作为所有 cell 的全局默认；nowrap 只用于状态、金额、动作等短内容列。
+5. 长文本列使用 `truncate` 或 `wrap-anywhere`，完整值通过 `title`、tooltip、popover、详情入口或复制动作查看。
+6. 指标列使用 `tabular-nums` 和稳定单行/两行结构，不把长 label 挤进主列。
+7. 复制和动作按钮必须 `shrink-0` 且宽高稳定，hover/focus/copied 不改变列宽。
+8. 禁止用 cell 内部固定 `w-*` 对抗表格列尺寸；如果必须控制宽度，先调整列契约。
+
 ## 桌面与移动边界
 
 - `DataTableShell` 只管桌面表格壳层：toolbar、列显隐、分页、空态、错误态、`Table` 结构。
@@ -230,3 +263,6 @@ export function DataTableShell({ items }: { items: Row[] }) {
 9. 复制成功用 toast 刷屏，而不是在复制按钮自身显示成功状态。
 10. 长文本没有摘要和完整查看路径，导致一列撑开整个表格。
 11. 指标列依赖冗长文字前缀，图标、`aria-label` 和视觉层级缺失。
+12. 用多个 cell 内部固定 `w-*` 预测列宽，真实 viewport 下互相挤压。
+13. `table-fixed`、全局 `whitespace-nowrap` 和长文本同时存在，导致内容覆盖相邻列。
+14. 只看代码和 jsdom 测试，不用真实浏览器截图验证表格布局。
