@@ -3,17 +3,12 @@
 ```bash
 # 首次获取源码；也可以替换为你自己的 checkout 路径
 git clone https://github.com/codeh007/mtmskills.git 
-
 # 预览
 gomtm skills link . --dry-run
-
-# 应用到 Hermes/Codex/Claude 三端
 gomtm skills link .
 ```
 
-已有 checkout 时只需要在仓库根目录执行 `gomtm skills link .`；命令会按约定查找 `skills/` 目录并发现其中符合规范的 skill。不要使用 `go run ./cmd`，也不要假定机器上存在 `/workspace/gomtm` 或 `/workspace/mtmskills`。
-
-## 远程/一次性安装
+## 安装
 
 ```bash
 npx skills add --all --global --yes codeh007/mtmskills
