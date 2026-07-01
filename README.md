@@ -1,13 +1,5 @@
 # mtmskills
 
-`mtmskills` 是私有 agent skills 源码仓库。源码目录是本地开发时的唯一真相源；不要把正在维护的 skills 复制安装成长期使用副本。
-
-## 本地开发安装（推荐）
-
-不要在本地开发场景使用 `npx skills add . --all --global --yes` 复制安装；复制会让 `~/.hermes/skills`、`~/.agents/skills` 与源码分叉。
-
-先获取或更新源码，然后直接使用已发布的 `gomtm` 命令创建目录级 symlink：
-
 ```bash
 # 首次获取源码；也可以替换为你自己的 checkout 路径
 git clone https://github.com/codeh007/mtmskills.git 
@@ -22,8 +14,6 @@ gomtm skills link .
 已有 checkout 时只需要在仓库根目录执行 `gomtm skills link .`；命令会按约定查找 `skills/` 目录并发现其中符合规范的 skill。不要使用 `go run ./cmd`，也不要假定机器上存在 `/workspace/gomtm` 或 `/workspace/mtmskills`。
 
 ## 远程/一次性安装
-
-远程机器或只读环境可以继续使用 `npx skills` 做复制式安装，但这不应作为本机源码开发工作流：
 
 ```bash
 npx skills add --all --global --yes codeh007/mtmskills
