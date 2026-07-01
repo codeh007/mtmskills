@@ -63,6 +63,7 @@ type MobileMeta = {
 - `DataTableShell` 只管桌面表格壳层：toolbar、列显隐、分页、空态、错误态、`Table` 结构。
 - `MobileRecordCard` 只管 `md` 以下的摘要结构：标题、状态、关键摘要、底部动作。
 - `TextCell`、`BadgeCell`、`MetricCell`、`ActionCell`、`CopyCell` 是可组合原语，不是页面级容器。
+- 通用 cell 放在 `components/common/table/cells`；仅服务当前业务表格、无法稳定复用的 cell 放在当前页面或子包内。
 - 没有 `meta.mobile` 的列默认不进入移动摘要；需要移动展示时必须显式声明。
 - 桌面和移动端的字段顺序应由列定义统一决定，不允许桌面一套顺序、移动端另一套顺序。
 
@@ -109,6 +110,17 @@ type MobileMeta = {
 - `CopyCell`：复制文本、短 ID、URL、外部引用。
 
 这些原语只负责自己的视觉语义，不负责数据拉取，也不负责决定列是否出现在移动摘要。
+
+## Cell 视觉规则
+
+1. 每个 cell 必须声明适合表格密度的宽度、`min-w-0`、截断或换行策略，不能让长值撑开整列。
+2. `TextCell` 展示长文本时只显示摘要；完整值通过 `Tooltip`、弹层、详情入口或可复制值查看。不要把完整 User-Agent、命令、错误全文直接铺在单元格里。
+3. `MetricCell` 展示输入/输出、上传/下载、增减、请求/响应等成对指标时，优先用方向图标和 `aria-label`，不要用“入/出”这类窄列里容易挤压的文字前缀。
+4. 金额、token、耗时、百分比等指标应使用紧凑的单行或清晰两行结构；辅助说明用 `text-muted-foreground`，不能让主值和说明堆叠到无法辨认。
+5. `CopyCell` 的复制成功反馈在按钮内部完成：图标切换为绿色 check、`aria-label` 更新，必要时保留 tooltip；不要默认用 toast 表示单个 cell 复制成功。
+6. 图标按钮必须有稳定尺寸，复制成功、hover、focus 状态不能改变单元格布局。
+7. 浅色/暗色主题都使用语义 token，例如 `text-muted-foreground`、`border-border`、`bg-muted`、`text-emerald-600 dark:text-emerald-400`；不要写只适配单一主题的硬编码颜色。
+8. 公共 cell 只接受值、展示选项和交互回调，不读取页面查询状态、路由状态或业务 store。
 
 ## 推荐骨架
 
@@ -202,6 +214,8 @@ export function DataTableShell({ items }: { items: Row[] }) {
 | 需要隐藏移动端字段 | 给列加 `meta.mobile.hidden = true` |
 | 需要固定移动端顺序 | 调整 `meta.mobile.priority`，不要另写第二套字段表 |
 | 需要复制动作 | 用 `CopyCell`，不要把复制逻辑塞进普通 `TextCell` |
+| 需要展示长文本 | 用摘要 + tooltip/详情入口，不让原文撑宽表格 |
+| 输入/输出类指标 | 用方向图标 + `aria-label`，避免在窄列里堆文字前缀 |
 
 ## 常见错误
 
@@ -213,3 +227,6 @@ export function DataTableShell({ items }: { items: Row[] }) {
 6. 用 `TextCell` 直接塞长命令、完整错误全文或可编辑表单。
 7. 为了“整齐”把 `DataTableShell` 做成页面级容器，结果 toolbar、table、空态、移动摘要混在一起。
 8. 复制类字段不用 `CopyCell`，而是手写一堆不一致的按钮和 tooltip。
+9. 复制成功用 toast 刷屏，而不是在复制按钮自身显示成功状态。
+10. 长文本没有摘要和完整查看路径，导致一列撑开整个表格。
+11. 指标列依赖冗长文字前缀，图标、`aria-label` 和视觉层级缺失。

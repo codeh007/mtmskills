@@ -15,6 +15,7 @@ description: Use when designing, implementing, or refactoring gomtm/gomtmui UI s
 4. 简洁优先：不要用说明文案堆叠来弥补信息架构不清。
 5. 不滥用 `<Card />`：卡片只用于重复记录项、弹窗内容或真正需要框定的工具，不把页面 section 套成 card，更不要 card-in-card。
 6. datatable 采用 column-first 约定：桌面表格和移动摘要共用同一份 `ColumnDef<TData>[]`，`columnDef.meta.mobile` 决定是否进入移动摘要；`flexRender` 只负责渲染列定义，不承载查询、分页、筛选、排序或选择状态。
+7. 表格 cell 先选公共 cell 原语，再写业务专用 cell；复制、长文本、指标、状态、动作都必须有明确宽度、截断、反馈和浅色/暗色主题状态。
 
 ## 组件选择
 
@@ -27,6 +28,7 @@ description: Use when designing, implementing, or refactoring gomtm/gomtmui UI s
 - 空数据：`Empty` 或仓库现有空态组件。
 - 次级详情、低频信息：`Collapsible`。
 - 一组互斥或并列命令：`Button Group`。
+- 表格复制、长文本、指标、状态、动作：优先使用 `components/common/table/cells` 下的公共 cell；只服务单个业务表格的特殊 cell 留在当前子包。
 
 如果当前仓库尚未安装某个 shadcn/ui 组件，先检查 `components.json`、`src/components/ui/` 和 shadcn CLI；不要为了名字手搓一套不一致的组件。
 
