@@ -113,3 +113,8 @@ Windows 下 `~/.codex/` 通常对应 `%USERPROFILE%\.codex\`。备份可用 Powe
 ## Codex App
 
 Codex App 是桌面端，适合普通用户管理多个 agent、查看 diff、切换项目并接续本地和云端任务。编程开发场景使用 Codex CLI。下载入口：<https://openai.com/codex/>。
+
+
+## 其他参考文件
+
+- https://github.com/silence2223/codex-switcher/blob/main/profiles/custom/relays.example.json
