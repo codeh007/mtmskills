@@ -17,6 +17,7 @@ codex doctor --summary
 版本、配置键、模型可用性相关判断以当前输出和官方文档为准：
 
 - Codex docs: <https://developers.openai.com/codex>
+- [codex docs zh-cn](https://openai.com/zh-Hans-CN/codex/)
 - Config reference: <https://developers.openai.com/codex/config-reference>
 - Codex README: <https://github.com/openai/codex/blob/main/README.md>
 
