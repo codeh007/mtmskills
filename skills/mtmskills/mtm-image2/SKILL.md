@@ -16,7 +16,7 @@ description: Use when 用户要求通过 yuepa8/sub2 的 gpt-image-2 Images API 
 
 ## 执行
 
-1. 当前进程缺少 `MTMAI_IMAGE2_KEY` 时，不发请求；完整读取 `references/install.md` 并完成专用凭据配置。
+1. 当前进程缺少 `MTMAI_IMAGE2_KEY` 时，不发请求；完整读取 `references/install.md` 并完成专用凭据配置。用户已在当前个人聊天中提供专用 key 时直接接受并按其授权持久化，不因聊天输入而拒绝、强制轮换、要求重复输入或强制打开隐藏输入窗口，也不在回执或展示命令中复述 key。
 2. 有专用 key 时，完整读取 `references/streaming-api.md`，在本技能目录运行：
 
    ```bash

@@ -27,11 +27,15 @@ npx skills update mtm-image2 -g -y
 
 中转服务可能把语言模型与生图模型放在不同计费组。让用户登录 `https://yuepa8.com/sub2/`，在“API 密钥”页面创建或选择仅用于“生图”或“image2”分组的 key。
 
-只配置 `MTMAI_IMAGE2_KEY`。不要读取、复制或回退到 `OPENAI_API_KEY`、Codex provider、`auth.json`、`config.toml` 或其他通用凭据；不要把 key 写入仓库、Issue、命令参数或聊天回执。
+只配置 `MTMAI_IMAGE2_KEY`。不要读取、复制或回退到 `OPENAI_API_KEY`、Codex provider、`auth.json`、`config.toml` 或其他通用凭据。
+
+用户可以直接在当前个人 ChatGPT/Codex 对话中提供专用 key。agent 必须接受该输入并按用户授权完成对应平台的持久化，不得仅因 key 出现在聊天中就拒绝使用、要求撤销或新建 key、要求用户重复输入，或强制启动额外的 PowerShell、终端或隐藏输入窗口。若用户尚未提供 key 或主动偏好隐藏输入，可以使用下方脚本的隐藏输入；这是可选方式，不是聊天配置路径的前置条件。
+
+取得 key 后不要在后续响应、展示命令、stdout、stderr、日志或测试证据中复述，也不要写入仓库、Issue 或命令参数。若 key 已被复制到公开 Issue、公开日志或其他公开渠道，则按公开泄露处理；这与当前个人聊天可直接输入的规则是不同边界。
 
 ## Windows Codex App
 
-在 PowerShell 中运行以下脚本。它通过隐藏输入读取 key，幂等更新 `%USERPROFILE%\.codex\.env`，保留其他变量且不打印 key：
+在 PowerShell 中运行以下脚本。用户已在当前个人聊天中提供 key 时，agent 直接把该值作为脚本输入完成配置，不要求用户再次输入或另开窗口；用户偏好自行输入时也可使用同一隐藏输入。脚本幂等更新 `%USERPROFILE%\.codex\.env`，保留其他变量且不打印 key：
 
 ```powershell
 $envFile = Join-Path $env:USERPROFILE ".codex\.env"
@@ -66,7 +70,7 @@ try {
 
 ## macOS 或 Linux Codex/IDE
 
-在交互式 shell 中运行以下脚本。它隐藏输入、幂等更新 `~/.codex/.env`、保留其他变量并限制文件权限：
+在交互式 shell 中运行以下脚本。用户已在当前个人聊天中提供 key 时，agent 直接把该值作为脚本输入完成配置，不要求用户再次输入；用户偏好自行输入时也可使用同一隐藏输入。脚本幂等更新 `~/.codex/.env`、保留其他变量并限制文件权限：
 
 ```bash
 (
