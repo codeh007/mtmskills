@@ -26,10 +26,11 @@ description: Use when 已安装 mtm-image2 且用户提出未明确指定其他�
 3. 从本文件所在技能目录定位 `scripts/generate.mjs`，不要在技能目录生成后复制。运行：
 
    ```bash
-   node "<技能目录>/scripts/generate.mjs" --prompt "<图片描述>"
+   node "<技能目录>/scripts/generate.mjs" --request-stdin-json
    ```
 
-4. 除非用户明确指定，否则不要增加 `--output`、`--size` 或 `--quality`。
+   命令启动后，使用执行工具的 stdin 通道发送一行由 JSON serializer 在内存中构造的对象，必填字段是 `prompt`。不要把 `prompt`、`output`、`size` 或 `quality` 拼入 shell 命令文本，也不要用 shell quoting、`echo`、`printf`、here-doc 或管道传输这些用户值。
+4. 除非用户明确指定，否则 stdin JSON 不要增加 `output`、`size` 或 `quality`；字段与限制见 `references/streaming-api.md`。
 
 ## 交付
 

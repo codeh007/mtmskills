@@ -1,15 +1,25 @@
 # 流式 Images API 契约
 
-## 命令参数
+## 安全输入与参数
 
 执行入口是 Node.js 18+ 零第三方依赖脚本 `scripts/generate.mjs`。
 
-| 参数 | 规则 |
+正常 agent 路径只启动固定命令：
+
+```bash
+node "<技能目录>/scripts/generate.mjs" --request-stdin-json
+```
+
+启动后，调用方通过执行工具的 stdin 通道发送一行由 JSON serializer 在内存中构造的 object。`--request-stdin-json` 必须是唯一 argv；stdin 上限为 128 KiB，只允许下列字段，未知字段或错误类型在请求前拒绝：
+
+| stdin 字段 | 规则 |
 | --- | --- |
-| `--prompt` | 必填且非空 |
-| `--output` | 可选；默认在调用进程的 `workdir/mtm_images/` 生成唯一 PNG，显式路径已存在时请求前失败 |
-| `--size` | 可选：`auto`、`1024x1024`、`1536x1024`、`1024x1536` |
-| `--quality` | 可选：`auto`、`low`、`medium`、`high` |
+| `prompt` | 必填字符串，去除首尾空白后必须非空 |
+| `output` | 可选非空字符串；默认在调用进程的 `workdir/mtm_images/` 生成唯一 PNG，显式路径已存在时请求前失败 |
+| `size` | 可选字符串：`auto`、`1024x1024`、`1536x1024`、`1024x1536` |
+| `quality` | 可选字符串：`auto`、`low`、`medium`、`high` |
+
+用户控制的字段不得进入 shell 命令 source；不要用 shell quoting、变量展开、`echo`、`printf`、here-doc、here-string 或管道构造 stdin。能够直接传递真实 argv array、完全不经过 shell source 的程序调用方仍可使用 `--prompt`、`--output`、`--size` 与 `--quality`；该兼容入口不属于 agent 的正常 shell 调用方式。
 
 其他参数全部拒绝。脚本只读取当前进程的 `MTMAI_IMAGE2_KEY`。
 
@@ -24,8 +34,10 @@
 每次执行只向以下固定端点发起一次 POST：
 
 ```text
-https://sub2.yuepa8.com/v1/images/generations
+https://yuepa8.com/v1/images/generations
 ```
+
+这是本技能唯一支持的 legacy 生产入口。`/llmapi/v1/images/generations` 使用独立的 gomtmui API Key、配置与计费契约，不是本技能路径；生产入口失败时不得切换到 `/llmapi` 或直连服务端内部 origin。
 
 请求使用 `Accept: text/event-stream`、`Content-Type: application/json` 和专用 key Bearer。body 固定包含：
 
@@ -48,7 +60,7 @@ https://sub2.yuepa8.com/v1/images/generations
 
 - 按 frame 增量解析任意网络分块，支持 LF、CRLF、多行 `data:` 和 `:` keepalive。
 - 忽略 `image_generation.partial_image`、其他 partial 和 `[DONE]`，不保存也不累计 partial 图片。
-- 只有 `image_generation.completed` 的非空 `b64_json` 可以成功。
+- 只有一个 `image_generation.completed` 的非空 `b64_json` 可以成功；收到首个 completed 后仍解析到响应终态，以拒绝后续 completed 或 terminal error。
 - `event: error`、error payload、断流或流结束时缺少 completed 都失败。
 
 ### 同请求 JSON fallback
@@ -59,13 +71,13 @@ https://sub2.yuepa8.com/v1/images/generations
 
 ## 输出与错误
 
-最终 base64 验证后先写入目标同目录的临时文件，再原子发布为目标 PNG。成功时 stdout 只输出：
+最终 base64 严格解码后，还必须通过 PNG signature、首个 `IHDR`、至少一个 `IDAT`、终止 `IEND`、chunk 长度和 CRC32 校验；任一结构错误都在落盘前失败。有效 bytes 先写入目标同目录的临时文件，再原子发布为目标 PNG。成功时 stdout 只输出：
 
 ```json
 {"ok":true,"output":"<最终绝对路径>","response_mode":"sse|json|json-event-stream-fallback"}
 ```
 
-不创建 prompt、report、partial 或后处理文件。任何失败都会清理临时文件并返回非零状态；错误会脱敏并限制长度。
+不创建 prompt、report、partial 或后处理文件。任何失败都会清理临时文件并返回非零状态；stderr 只保留受限的本地阶段/HTTP 状态摘要，不回显不可信上游正文或 header value、prompt、key、Authorization 或完整 base64。
 
 stdout JSON 是脚本与 agent 之间的内部交付契约；最终用户交付完全遵循 `SKILL.md`。图片查看失败不触发第二次生图，不打印 base64，也不构造 data URL。
 
