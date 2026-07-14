@@ -7,11 +7,17 @@
 | 参数 | 规则 |
 | --- | --- |
 | `--prompt` | 必填且非空 |
-| `--output` | 可选；默认在当前目录生成唯一 PNG，显式路径已存在时请求前失败 |
+| `--output` | 可选；默认在调用进程的 `workdir/mtm_images/` 生成唯一 PNG，显式路径已存在时请求前失败 |
 | `--size` | 可选：`auto`、`1024x1024`、`1536x1024`、`1024x1536` |
 | `--quality` | 可选：`auto`、`low`、`medium`、`high` |
 
 其他参数全部拒绝。脚本只读取当前进程的 `MTMAI_IMAGE2_KEY`。
+
+## 调用工作目录
+
+调用方从技能安装位置引用 `scripts/generate.mjs`，同时把命令 `workdir` 设为宿主提供的当前项目/工作区根目录。当前任务确实没有活动项目时，使用操作系统临时目录。脚本把默认图片统一写入 `<workdir>/mtm_images/`；不要把全局技能目录作为 `workdir`，也不要先在那里生成再复制。
+
+用户显式 `--output` 时保持该位置优先；相对路径基于上述 `workdir` 解析，不强制进入 `mtm_images/`。脚本不负责探测 Git 根目录，也不增加 project-root 参数或环境变量。
 
 ## 唯一请求
 
@@ -60,6 +66,8 @@ https://sub2.yuepa8.com/v1/images/generations
 ```
 
 不创建 prompt、report、partial 或后处理文件。任何失败都会清理临时文件并返回非零状态；错误会脱敏并限制长度。
+
+stdout JSON 是脚本与 agent 之间的内部交付契约；最终用户交付完全遵循 `SKILL.md`。图片查看失败不触发第二次生图，不打印 base64，也不构造 data URL。
 
 HTTP 错误、超时、断流、terminal error、缺 completed 或坏 base64 后不自动重试。请求一旦发出，结果或费用可能已在上游产生，应把脱敏错误交给用户自行决定是否再次执行。
 

@@ -63,7 +63,10 @@ function parseArgs(argv) {
 
   const output = values["--output"]
     ? path.resolve(values["--output"])
-    : path.resolve(`mtm-image2-${new Date().toISOString().replace(/[-:.TZ]/g, "")}-${randomUUID().slice(0, 8)}.png`);
+    : path.resolve(
+        "mtm_images",
+        `mtm-image2-${new Date().toISOString().replace(/[-:.TZ]/g, "")}-${randomUUID().slice(0, 8)}.png`,
+      );
 
   return { prompt, output, size, quality };
 }
