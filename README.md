@@ -82,3 +82,7 @@ skills/
 # 其他
 
 - [shadcn 作者 improve skills] (https://github.com/shadcn/improve)
+
+# 前端开发类
+
+- https://pols.dev/slop.md - 避免AI味.
