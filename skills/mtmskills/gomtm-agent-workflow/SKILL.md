@@ -7,7 +7,7 @@ license: MIT
 metadata:
   hermes:
     tags: [gomtm, github-issues, hermes, kanban, workflow, automation, telegram, multi-agent]
-    related_skills: [gomtm-global, gomtm-hermes, github-actions-local, gomtm-skills-improve]
+    related_skills: [gomtm-global, gomtm-hermes, gomtm-skills-improve]
 ---
 
 # gomtm Agent Workflow
@@ -50,7 +50,6 @@ Issue -> specify/comment -> approval gate -> Kanban execution -> review -> evide
 ## Required Sub-skills
 
 - Hermes/Kanban 配置、dashboard、gateway、Telegram、provider：使用 `gomtm-hermes`。
-- GitHub Actions 本地复现：使用 `github-actions-local`。
 - 技能文档维护：使用 `gomtm-skills-improve`、`writing-skills`。
 - 代码开发、调试、review：按任务类型加载对应 gomtm / GitHub / Superpowers 技能。
 
