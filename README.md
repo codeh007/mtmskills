@@ -86,3 +86,5 @@ skills/
 # 前端开发类
 
 - https://pols.dev/slop.md - 避免AI味.
+- https://github.com/Nutlope/hallmark - A design skill for Claude Code, Cursor, and Codex that refuses to look AI-generated.
+
