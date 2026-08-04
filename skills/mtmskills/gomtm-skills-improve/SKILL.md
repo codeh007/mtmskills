@@ -63,3 +63,8 @@ description: Use when creating or editing a gomtm skill or its resources, or rev
 每条后续建议都包含：任务标题、证据路径和段落、当前权威来源、影响、目标变更、验收条件、授权边界和验证入口。建议任务不在当前授权内顺手实施；依赖或路径无法解析时也按此格式记录，恢复依赖后重新验证。
 
 **完成：** 交付中已覆盖实际受影响的技能、规格、指引和本地引用检查；每条建议都有可执行的下一步，或明确记录检查范围内没有建议。
+
+
+## 有用的参考文档
+
+- [prompt-engineering](https://developers.openai.com/api/docs/guides/prompt-engineering)
