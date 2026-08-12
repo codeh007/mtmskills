@@ -58,6 +58,9 @@ skills/
 - golang 开发 - https://github.com/cxuu/golang-skills
 - https://github.com/samber/cc-skills-golang/tree/main/skills
 - https://github.com/vercel-labs/skills
+- https://github.com/dietrichgebert/ponytail - 强迫AI少些代码.
+
+
 
 # harness 框架收集
 
