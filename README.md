@@ -97,3 +97,13 @@ https://github.com/yikart/AiToEarn
 ## 热门库
 
 - https://github.com/img2threejs/img2threejs 给定一个图片, 基于llm的方式生成3d视图.
+1️⃣ diagram-design — 给 Claude Code 和 Codex 用的画图技能包，38 种图表，纯 HTML+SVG 浏览器直接开，不用构建。装完还能读你自己网站，把配色和字体抄过来。本周涨 14397⭐，全榜最猛
+2️⃣ MoneyPrinterTurbo — 给个主题就出成片，脚本、素材、字幕、配乐、合成一条龙，还能一键传 TikTok 和 YouTube Shorts。2024 年的老项目，11.2w⭐
+3️⃣ needle — 45M 参数，整个模型就是一个 14MB 的文件，跑一轮会话约 28MB 内存。专做工具调用和结构化抽取，手机、手表这类小设备是它瞄的场景
+4️⃣ unsloth — 以前是个微调库，现在出了桌面应用，本地跑模型和训模型在一个界面里。刚加 Qwen3.8-27B。「快 2 倍省 70% 显存」是官方自述数据
+5️⃣ macro — 邮件、聊天、文档、任务、CRM、agent 装进一个工作区，全部 @ 互链、共享团队级记忆。AGPL-3.0，可以自建
+6️⃣ modly — 一张图或者一句话出一个 3D 模型，全程跑自己的显卡。许可证是 MIT 加一条署名条款，fork 出去要标出处
+7️⃣ ai-memory — Claude Code 干到一半退出，同目录换 Codex 接着干，不用重讲架构和试过的死路。记忆是 git 里的普通 markdown，能 grep，不用管向量库
+8️⃣ OpenViking — 火山引擎出的 agent 上下文数据库，记忆、资源、技能存成一个虚拟文件系统，agent 用 ls、tree、find 自己翻，检索还留轨迹
+9️⃣ llmfit — 一条命令扫一遍你的内存、CPU、显卡，告诉你哪些模型在这台机器上真跑得动。跑完基准还能提 PR 把实测速度交回项目
+🔟 Switchyard — NVIDIA 出的 LLM 流量代理，OpenAI 和 Anthropic 两套 API 互相翻译，后端随便换。README 明写 pre-alpha，别上生产
