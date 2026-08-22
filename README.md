@@ -92,3 +92,8 @@ skills/
 
 
 https://github.com/yikart/AiToEarn
+
+
+## 热门库
+
+- https://github.com/img2threejs/img2threejs 给定一个图片, 基于llm的方式生成3d视图.
