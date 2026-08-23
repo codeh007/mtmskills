@@ -58,8 +58,8 @@ skills/
 - golang 开发 - https://github.com/cxuu/golang-skills
 - https://github.com/samber/cc-skills-golang/tree/main/skills
 - https://github.com/vercel-labs/skills
-
-
+- https://github.com/lennney/stop-that-shit
+- https://github.com/humanlayer/skills/tree/main/plugins/show-me/skills/show-me - 画图告诉我
 
 # harness 框架收集
 
