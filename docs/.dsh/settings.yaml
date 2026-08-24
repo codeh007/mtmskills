@@ -1,0 +1,367 @@
+# 主配置文件
+# 注意:
+#    1. 这个配置文件 使用了`sk-xxxx` 表示api key的占位符, 请自己找到对应的分组,将可用的 api key 替换即可.
+#    2. 已知`yuepa8-gpt`,`kiro claude`, `deepseek` 能用, 只要正确配置api-key, 其他没仔细测试.
+#    3. 版本可能更新, 请自己留意更新情况, 或者实在不能解决, 请联系qq: 103379596 协助解决. 
+
+ui-onboarding:
+  welcomeNoticeVersion: 2026-08-13.1
+locale:
+  preference: zh
+agent-default-model:
+  provider: yuepa8-gpt
+  model: gpt-5.6-sol
+  reasoningEffort: max
+llm-pi-ai:
+  providers:
+    yuepa8-gpt:
+      retryPolicy:
+        mode: normal
+        maxRetries: 10
+        retryableCodes:
+          - EMPTY_RESPONSE
+          - RATE_LIMIT
+          - SERVER
+          - TIMEOUT
+          - TRANSPORT
+          - PI_AI_ERROR
+        backoff:
+          initialDelayMs: 800
+          maxDelayMs: 10000
+          jitterRatio: 0.2
+      displayName: yuepa8 GPT
+      api: openai-responses
+      baseURL: https://yuepa8.com
+      cacheRetention: long
+      headers:
+        Authorization: "Bearer
+          sk-xxx"
+      models:
+        - id: gpt-5.6-sol
+          name: gpt-5.6-sol
+          contextWindow: 1050000
+          maxTokens: 128000
+          input:
+            - text
+            - image
+          reasoningEfforts:
+            off:
+            minimal: minimal
+            low: low
+            medium: medium
+            high: high
+            xhigh: xhigh
+            max: max
+        - id: gpt-5.6-luna
+          name: gpt-5.6-luna
+          contextWindow: 1050000
+          maxTokens: 128000
+          input:
+            - text
+            - image
+          reasoningEfforts:
+            off:
+            low: low
+            medium: medium
+            high: high
+            xhigh: xhigh
+            max: max
+        - id: gpt-5.6-terra
+          name: gpt-5.6-terra
+          contextWindow: 1050000
+          maxTokens: 128000
+          input:
+            - text
+            - image
+          reasoningEfforts:
+            off:
+            minimal: minimal
+            low: low
+            medium: medium
+            high: high
+            xhigh: xhigh
+            max: max
+
+    yuepa8-grok(openai):
+      retryPolicy:
+        mode: normal
+        maxRetries: 10
+        retryableCodes:
+          - EMPTY_RESPONSE
+          - RATE_LIMIT
+          - SERVER
+          - TIMEOUT
+          - TRANSPORT
+          - PI_AI_ERROR
+        backoff:
+          initialDelayMs: 800
+          maxDelayMs: 10000
+          jitterRatio: 0.2
+      displayName: yuepa8 Grok (Responses)
+      api: openai-responses
+      baseURL: https://yuepa8.com/v1
+      cacheRetention: short
+      headers:
+        Authorization: "Bearer
+          sk-xxx"
+      models:
+        - id: grok-4.5
+          name: grok-4.5
+          contextWindow: 500000
+          maxTokens: 500000
+          input:
+            - text
+          reasoningEfforts:
+            low: low
+            medium: medium
+            high: high
+          compat: {}
+        - id: grok-4.6
+          name: grok-4.6
+          contextWindow: 500000
+          maxTokens: 500000
+          input:
+            - text
+          reasoningEfforts:
+            low: low
+            medium: medium
+            high: high
+          compat: {}
+      reasoning: high
+
+    yuepa8-deepseek-offical(openai):
+      retryPolicy:
+        mode: normal
+        maxRetries: 10
+        retryableCodes:
+          - EMPTY_RESPONSE
+          - RATE_LIMIT
+          - SERVER
+          - TIMEOUT
+          - TRANSPORT
+          - PI_AI_ERROR
+        backoff:
+          initialDelayMs: 800
+          maxDelayMs: 10000
+          jitterRatio: 0.2
+      displayName: yuepa8-deekseek-offical(openai)
+      api: openai-responses
+      baseURL: https://yuepa8.com
+      cacheRetention: long
+      headers:
+        Authorization: "Bearer
+          sk-xxx"
+      models:
+        - id: deepseek-v4-flash
+          name: deepseek-v4-flash
+          contextWindow: 1050000
+          maxTokens: 128000
+          input:
+            - text
+            - image
+          reasoningEfforts:
+            off:
+            minimal: minimal
+            low: low
+            medium: medium
+            high: high
+            xhigh: xhigh
+            max: max
+    yuepa8-deepseek(openai):
+      retryPolicy:
+        mode: normal
+        maxRetries: 10
+        retryableCodes:
+          - EMPTY_RESPONSE
+          - RATE_LIMIT
+          - SERVER
+          - TIMEOUT
+          - TRANSPORT
+          - PI_AI_ERROR
+        backoff:
+          initialDelayMs: 800
+          maxDelayMs: 10000
+          jitterRatio: 0.2
+      displayName: yuepa8-deekseek(openai)
+      api: openai-completions
+      baseURL: https://yuepa8.com/v1
+      reasoning: max
+      headers:
+        Authorization: "Bearer
+          sk-xxx"
+      models:
+        - id: deepseek-v4-flash
+          name: deepseek-v4-flash
+          contextWindow: 1050000
+          maxTokens: 128000
+          input:
+            - text
+            - image
+          reasoningEfforts:
+            off:
+            minimal: minimal
+            low: low
+            medium: medium
+            high: high
+            xhigh: xhigh
+            max: max
+          compat:
+            supportsStore: false
+            supportsDeveloperRole: false
+            supportsReasoningEffort: true
+            maxTokensField: max_tokens
+            thinkingFormat: deepseek
+            supportsStrictMode: false
+        - id: glm-5.3
+          name: glm-5.3
+          contextWindow: 1050000
+          maxTokens: 65536
+          input:
+            - text
+            - image
+          reasoningEfforts:
+            low: low
+            high: high
+            max: max
+          compat:
+            supportsStore: false
+            supportsDeveloperRole: false
+            supportsReasoningEffort: true
+            maxTokensField: max_tokens
+            thinkingFormat: zai
+            supportsStrictMode: false
+    yuepa8-grok:
+      retryPolicy:
+        mode: normal
+        maxRetries: 3
+        backoff:
+          initialDelayMs: 800
+          maxDelayMs: 8000
+          jitterRatio: 0.2
+      displayName: yuepa8 Grok (Responses)
+      api: openai-responses
+      baseURL: https://yuepa8.com/v1
+      headers:
+        Authorization: "Bearer
+          sk-xxx"
+      models:
+        - id: grok-4.6
+          name: grok-4.6
+          contextWindow: 500000
+          maxTokens: 500000
+          input:
+            - text
+          reasoningEfforts:
+            low: low
+            medium: medium
+            high: high
+            xhigh: xhigh
+          compat: {}
+      cacheRetention: short
+      reasoning: high
+      compat:
+        supportsLongCacheRetention: false
+        supportsDeveloperRole: false
+    yuepa8-claude-kiro:
+      retryPolicy:
+        mode: normal
+        maxRetries: 8
+        backoff:
+          initialDelayMs: 500
+          maxDelayMs: 60000
+          jitterRatio: 0.2
+      displayName: yuepa8 Claude
+      api: anthropic-messages
+      headers:
+        Authorization: "Bearer
+          sk-xxx"
+      baseURL: https://yuepa8.com
+      cacheRetention: long
+      compat:
+        forceAdaptiveThinking: true
+        supportsLongCacheRetention: true
+        supportsStrictTools: true
+      models:
+        - id: claude-fable-5
+          name: Claude Fable 5
+          contextWindow: 1000000
+          maxTokens: 128000
+          input:
+            - text
+            - image
+          reasoningEfforts:
+            low: low
+            medium: medium
+            high: high
+            xhigh: xhigh
+            max: max
+        - id: claude-opus-4-7
+          name: Claude Opus 4.7
+          contextWindow: 1000000
+          maxTokens: 128000
+          input:
+            - text
+            - image
+          reasoningEfforts:
+            low: low
+            medium: medium
+            high: high
+            xhigh: xhigh
+            max: max
+          compat:
+            supportsTemperature: false
+        - id: claude-opus-4-8
+          name: Claude Opus 4.8
+          contextWindow: 1000000
+          maxTokens: 128000
+          input:
+            - text
+            - image
+          reasoningEfforts:
+            low: low
+            medium: medium
+            high: high
+            xhigh: xhigh
+            max: max
+          compat:
+            supportsTemperature: false
+        - id: claude-opus-5
+          name: Claude Opus 5
+          contextWindow: 1000000
+          maxTokens: 128000
+          input:
+            - text
+            - image
+          reasoningEfforts:
+            low: low
+            medium: medium
+            high: high
+            xhigh: xhigh
+            max: max
+          compat:
+            supportsTemperature: false
+        - id: claude-sonnet-5
+          name: Claude Sonnet 5
+          contextWindow: 1000000
+          maxTokens: 128000
+          input:
+            - text
+            - image
+          reasoningEfforts:
+            low: low
+            medium: medium
+            high: high
+            xhigh: xhigh
+            max: max
+
+permission:
+  defaultPreset: danger-full-access
+agent-presets:
+  default: gomtm-code
+ui-conversation:
+  busyEnter: steer
+dsh-better-sidebar:
+  tabsEnabled:
+    diff: true
+  openByDefault: false
+  interceptOpenPath: false
