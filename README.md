@@ -72,3 +72,7 @@ https://github.com/yikart/AiToEarn
 8️⃣ OpenViking — 火山引擎出的 agent 上下文数据库，记忆、资源、技能存成一个虚拟文件系统，agent 用 ls、tree、find 自己翻，检索还留轨迹
 9️⃣ llmfit — 一条命令扫一遍你的内存、CPU、显卡，告诉你哪些模型在这台机器上真跑得动。跑完基准还能提 PR 把实测速度交回项目
 🔟 Switchyard — NVIDIA 出的 LLM 流量代理，OpenAI 和 Anthropic 两套 API 互相翻译，后端随便换。README 明写 pre-alpha，别上生产
+
+## PPT 制作
+
+- https://github.com/hugohe3/ppt-master - 以SVG为基础最终输出完整的PPT文档
