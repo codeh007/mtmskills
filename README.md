@@ -77,3 +77,4 @@ https://github.com/yikart/AiToEarn
 ## PPT 制作
 
 - https://github.com/hugohe3/ppt-master - 以SVG为基础最终输出完整的PPT文档
+- https://github.com/op7418/guizang-ppt-skill
