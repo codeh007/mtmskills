@@ -35,6 +35,9 @@ npx skills add . --all --global --yes --full-depth
 - https://github.com/DietrichGebert/ponytail 强迫AI少些代码
 - https://github.com/backnotprop/pstack - Use pstack with claude, codex, pi - Skills and principles for rigorous AI-assisted engineering
 
+## 源码索引
+
+- https://github.com/colbymchenry/codegraph
 
 # 优化-压缩-节省token
 
