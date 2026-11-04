@@ -59,6 +59,9 @@ npx skills add . --all --global --yes --full-depth
 - https://pols.dev/slop.md - 避免AI味.
 - https://github.com/Nutlope/hallmark - A design skill for Claude Code, Cursor, and Codex that refuses to look AI-generated.
 
+## 去AI味 - 文字
+- https://github.com/blader/humanizer
+
 
 https://github.com/yikart/AiToEarn
 
