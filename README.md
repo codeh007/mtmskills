@@ -65,6 +65,10 @@ npx skills add . --all --global --yes --full-depth
 
 https://github.com/yikart/AiToEarn
 
+## 知识库-RAG
+
+- [WeKnora](https://github.com/Tencent/WeKnora)
+
 
 ## 热门库
 
