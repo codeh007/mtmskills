@@ -69,6 +69,11 @@ https://github.com/yikart/AiToEarn
 
 - [WeKnora](https://github.com/Tencent/WeKnora)
 
+## 社媒侦测
+
+- https://github.com/sherlock-project/sherlock
+
+
 
 ## 热门库
 
