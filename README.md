@@ -62,18 +62,21 @@ npx skills add . --all --global --yes --full-depth
 ## 去AI味 - 文字
 - https://github.com/blader/humanizer
 
-
 https://github.com/yikart/AiToEarn
 
 ## 知识库-RAG
 
 - [WeKnora](https://github.com/Tencent/WeKnora)
 
+## UI 
+
+- bombadil - Property-based testing for web and terminal UIs, 用探索模式, 找到UI bug
+
+
+
 ## 社媒侦测
 
 - https://github.com/sherlock-project/sherlock
-
-
 
 ## 热门库
 
