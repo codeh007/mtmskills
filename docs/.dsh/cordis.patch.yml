@@ -1,0 +1,800 @@
+# 文件路径 ${HOME}.dsh/profiles/web/cordis.patch.yml
+# sk-xxx 是 apikey 占位符
+- id: sandbox-policy
+  config:
+    mode: danger-full-access
+- id: approval
+  config:
+    policy: never
+- id: ui-settings-general
+  config:
+    welcomeNoticeVersion: 2026-09-28.1
+- id: locale
+  config:
+    preference: zh
+# 新会话默认模型
+- id: agent-default-model
+  config:
+    provider: yuepa8-claude-kiro-满血
+    model: claude-opus-5-5
+    reasoningEffort: high
+- id: llm-pi-ai
+  config:
+    providers:
+      yuepa8-gpt-稳定:
+        retryPolicy: &gpt_retry
+          mode: normal
+          maxRetries: 10
+          retryableCodes:
+            - EMPTY_RESPONSE
+            - RATE_LIMIT
+            - SERVER
+            - TIMEOUT
+            - TRANSPORT
+            - PI_AI_ERROR
+          backoff:
+            initialDelayMs: 800
+            jitterRatio: 0.2
+        displayName: yuepa8 GPT 稳定
+        api: &gpt_api openai-responses
+        defaultContextWindow: &gpt_context_window 1050000
+        defaultInput: &gpt_input
+          - text
+          - image
+        baseURL: https://yuepa8.com
+        headers:
+          Authorization: Bearer
+            sk-xxx
+        # 修改模型在此处；maxTokens 也参与压缩的输出预留。
+        models: &gpt_models
+          - id: gpt-6.2-astra
+            maxTokens: 128000
+            reasoningEfforts:
+              low: low
+              medium: medium
+              high: high
+              xhigh: xhigh
+              max: max
+          - id: gpt-6.2-sol
+            maxTokens: 128000
+            reasoningEfforts:
+              low: low
+              medium: medium
+              high: high
+              xhigh: xhigh
+              max: max
+          - id: gpt-6-astra
+            maxTokens: 128000
+            reasoningEfforts:
+              low: low
+              medium: medium
+              high: high
+              xhigh: xhigh
+              max: max
+          - id: gpt-6-astra
+            maxTokens: 128000
+            reasoningEfforts:
+              low: low
+              medium: medium
+              high: high
+              xhigh: xhigh
+              max: max
+          - id: gpt-6.1-sol
+            maxTokens: 128000
+            reasoningEfforts:
+              low: low
+              medium: medium
+              high: high
+              xhigh: xhigh
+              max: max
+          - id: gpt-6-sol
+            maxTokens: 128000
+            reasoningEfforts:
+              off: null
+              low: low
+              medium: medium
+              high: high
+              xhigh: xhigh
+              max: max
+          - id: gpt-6.1-terra
+            maxTokens: 128000
+            reasoningEfforts:
+              off: null
+              low: low
+              medium: medium
+              high: high
+              xhigh: xhigh
+              max: max
+
+          - id: gpt-5.6-sol
+            maxTokens: 128000
+            reasoningEfforts:
+              off: null
+              low: low
+              medium: medium
+              high: high
+              xhigh: xhigh
+              max: max
+          - id: gpt-5.6-luna
+            maxTokens: 128000
+            reasoningEfforts:
+              off: null
+              low: low
+              medium: medium
+              high: high
+              xhigh: xhigh
+              max: max
+          - id: gpt-5.6-terra
+            maxTokens: 128000
+            reasoningEfforts:
+              off: null
+              low: low
+              medium: medium
+              high: high
+              xhigh: xhigh
+              max: max
+      yuepa8-gpt-福利:
+        retryPolicy: *gpt_retry
+        displayName: yuepa8 GPT-福利
+        api: *gpt_api
+        defaultContextWindow: *gpt_context_window
+        defaultInput: *gpt_input
+        baseURL: https://yuepa8.com
+        headers:
+          Authorization: Bearer
+            sk-xxx
+        models: *gpt_models
+        models: *gpt_models
+      yuepa8-gpt-不降智:
+        retryPolicy: *gpt_retry
+        displayName: yuepa8 GPT-不降智
+        api: *gpt_api
+        defaultContextWindow: *gpt_context_window
+        defaultInput: *gpt_input
+        baseURL: https://yuepa8.com
+        headers:
+          Authorization: Bearer
+            sk-xxx
+        models: *gpt_models
+      yuepa8-gpt-官key:
+        retryPolicy: *gpt_retry
+        displayName: yuepa8 GPT-官key
+        api: *gpt_api
+        defaultContextWindow: *gpt_context_window
+        defaultInput: *gpt_input
+        baseURL: https://yuepa8.com
+        headers:
+          Authorization: Bearer
+            sk-xxx
+        models: *gpt_models
+      yuepa8-gpt-官key2:
+        retryPolicy: *gpt_retry
+        displayName: yuepa8 GPT-官key2
+        api: *gpt_api
+        defaultContextWindow: *gpt_context_window
+        defaultInput: *gpt_input
+        baseURL: https://yuepa8.com
+        headers:
+          Authorization: Bearer
+            sk-xxx
+        models: *gpt_models
+      yuepa8-gpt-az-key:
+        retryPolicy: *gpt_retry
+        displayName: yuepa8 GPT-az-key
+        api: *gpt_api
+        defaultContextWindow: *gpt_context_window
+        defaultInput: *gpt_input
+        baseURL: https://yuepa8.com
+        headers:
+          Authorization: Bearer
+            sk-xxx
+        models: *gpt_models
+      yuepa8-gpt-connect:
+        displayName: yuepa8 GPT-connect
+        retryPolicy: *gpt_retry
+        api: *gpt_api
+        defaultContextWindow: *gpt_context_window
+        defaultInput: *gpt_input
+        baseURL: https://yuepa8.com
+        headers:
+          Authorization: Bearer
+            sk-xxx
+        models: *gpt_models
+      # Grok：两组共用协议、三款模型与短缓存。
+      yuepa8-grok(openai):
+        retryPolicy:
+          mode: normal
+          maxRetries: 10
+          retryableCodes:
+            - EMPTY_RESPONSE
+            - RATE_LIMIT
+            - SERVER
+            - TIMEOUT
+            - TRANSPORT
+            - PI_AI_ERROR
+          backoff:
+            initialDelayMs: 800
+            jitterRatio: 0.2
+        displayName: yuepa8 Grok (Responses)
+        api: &grok_api openai-responses
+        baseURL: https://yuepa8.com/v1
+        cacheRetention: &grok_cache short
+        headers:
+          Authorization: Bearer
+            sk-xxx
+        models: &grok_models
+          - id: grok-4.5
+            contextWindow: 500000
+            maxTokens: 128000
+            input:
+              - text
+            reasoningEfforts:
+              low: low
+              medium: medium
+              high: high
+          - id: grok-4.6
+            contextWindow: 500000
+            maxTokens: 128000
+            input:
+              - text
+            reasoningEfforts:
+              low: low
+              medium: medium
+              high: high
+              xhigh: xhigh
+          - id: grok-4.7
+            contextWindow: 500000
+            maxTokens: 128000
+            input:
+              - text
+            reasoningEfforts:
+              low: low
+              medium: medium
+              high: high
+              xhigh: xhigh
+        reasoning: high
+      # 保留本组原有的退避、错误码及兼容差异。
+      yuepa8-grok:
+        retryPolicy:
+          mode: normal
+          maxRetries: 10
+          backoff:
+            initialDelayMs: 800
+            maxDelayMs: 8000
+            jitterRatio: 0.2
+        displayName: yuepa8 Grok(oai)
+        api: *grok_api
+        baseURL: https://yuepa8.com/v1
+        headers:
+          Authorization: Bearer
+            sk-xxx
+        models: *grok_models
+        cacheRetention: *grok_cache
+        reasoning: high
+        compat:
+          supportsLongCacheRetention: false
+          supportsDeveloperRole: false
+      yuepa8-deepseek-offical(openai):
+        retryPolicy: &deepseek_retry
+          mode: normal
+          maxRetries: 10
+          retryableCodes:
+            - EMPTY_RESPONSE
+            - RATE_LIMIT
+            - SERVER
+            - TIMEOUT
+            - TRANSPORT
+            - PI_AI_ERROR
+          backoff:
+            initialDelayMs: 800
+            jitterRatio: 0.2
+        displayName: yuepa8-deekseek-offical(openai)
+        api: openai-responses
+        baseURL: https://yuepa8.com
+        cacheRetention: long
+        headers:
+          Authorization: Bearer
+            sk-xxx
+        models:
+          - id: deepseek-v4-flash
+            contextWindow: 1050000
+            maxTokens: 128000
+            input:
+              - text
+              - image
+            reasoningEfforts:
+              off: null
+              minimal: minimal
+              low: low
+              medium: medium
+              high: high
+              xhigh: xhigh
+              max: max
+      yuepa8-deepseek:
+        retryPolicy: *deepseek_retry
+        displayName: yuepa8-deekseek(openai)
+        # api: openai-completions
+        api: openai-responses
+        baseURL: https://yuepa8.com/v1
+        reasoning: max
+        headers:
+          Authorization: Bearer
+            sk-xxx
+        models:
+          - id: deepseek-v4-flash
+            contextWindow: 1050000
+            maxTokens: 128000
+            input:
+              - text
+              - image
+            reasoningEfforts:
+              off: null
+              minimal: minimal
+              low: low
+              medium: medium
+              high: high
+              xhigh: xhigh
+              max: max
+            compat: &deepseek_model_compat
+              supportsStore: false
+              supportsDeveloperRole: false
+              supportsReasoningEffort: true
+              maxTokensField: max_tokens
+              thinkingFormat: deepseek
+              supportsStrictMode: false
+          - id: deepseek-v4.1-flash
+            contextWindow: 1050000
+            maxTokens: 128000
+            input:
+              - text
+              - image
+            reasoningEfforts:
+              off: null
+              minimal: minimal
+              low: low
+              medium: medium
+              high: high
+              xhigh: xhigh
+              max: max
+            compat: *deepseek_model_compat
+          - id: glm-5.3
+            contextWindow: 1050000
+            maxTokens: 65536
+            input:
+              - text
+              - image
+            reasoningEfforts:
+              low: low
+              high: high
+              max: max
+            compat:
+              supportsStore: false
+              supportsDeveloperRole: false
+              supportsReasoningEffort: true
+              maxTokensField: max_tokens
+              thinkingFormat: zai
+              supportsStrictMode: false
+      # Claude：四组共用协议、模型、重试、兼容与缓存。
+      yuepa8-claude-非官方:
+        retryPolicy: &claude_retry
+          mode: normal
+          maxRetries: 10
+          backoff:
+            maxDelayMs: 60000
+            jitterRatio: 0.2
+        displayName: yuepa8 ccmax-非官方
+        api: &claude_api anthropic-messages
+        headers:
+          Authorization: Bearer
+            sk-xxx
+        baseURL: https://yuepa8.com
+        cacheRetention: &claude_cache long
+        compat: &claude_compat
+          forceAdaptiveThinking: true
+          supportsLongCacheRetention: true
+          supportsStrictTools: true
+        models: &claude_models
+          - id: claude-fable-5-2
+            contextWindow: 1000000
+            maxTokens: 128000
+            input:
+              - text
+              - image
+            reasoningEfforts:
+              low: low
+              medium: medium
+              high: high
+              xhigh: xhigh
+              max: max
+          - id: claude-fable-5-1
+            contextWindow: 1000000
+            maxTokens: 128000
+            input:
+              - text
+              - image
+            reasoningEfforts:
+              low: low
+              medium: medium
+              high: high
+              xhigh: xhigh
+              max: max
+          - id: claude-opus-5-5
+            contextWindow: 1000000
+            maxTokens: 128000
+            input:
+              - text
+              - image
+            reasoningEfforts:
+              low: low
+              medium: medium
+              high: high
+              xhigh: xhigh
+              max: max
+            compat: &claude_model_compat
+              supportsTemperature: false
+          - id: claude-opus-5
+            contextWindow: 1000000
+            maxTokens: 128000
+            input:
+              - text
+              - image
+            reasoningEfforts:
+              low: low
+              medium: medium
+              high: high
+              xhigh: xhigh
+              max: max
+            compat: *claude_model_compat
+          - id: claude-sonnet-5-5
+            contextWindow: 1000000
+            maxTokens: 128000
+            input:
+              - text
+              - image
+            reasoningEfforts:
+              low: low
+              medium: medium
+              high: high
+              xhigh: xhigh
+              max: max
+            compat: *claude_model_compat
+      yuepa8-kimi:
+        retryPolicy: *claude_retry
+        displayName: yuepa8 kimi
+        api: openai-completions
+        headers:
+          Authorization: Bearer
+            sk-xxx
+        baseURL: https://yuepa8.com
+        cacheRetention: *claude_cache
+        compat: *claude_compat
+        models: &kimi_models
+          - id: kimi-k3.1-pro
+            contextWindow: 1000000
+            maxTokens: 128000
+            input:
+              - text
+              - image
+            reasoningEfforts:
+              low: low
+              medium: medium
+              high: high
+              xhigh: xhigh
+              max: max
+
+      yuepa8-claude-kiro-满血:
+        displayName: yuepa8-claude-kiro-满血
+        retryPolicy: *claude_retry
+        api: *claude_api
+        headers:
+          Authorization: Bearer
+            sk-xxx
+        baseURL: https://yuepa8.com
+        cacheRetention: *claude_cache
+        compat: *claude_compat
+        models: *claude_models
+      yuepa8-claude-kiro:
+        retryPolicy: *claude_retry
+        displayName: yuepa8-claude-kiro
+        api: *claude_api
+        headers:
+          Authorization: Bearer
+            sk-xxx
+        baseURL: https://yuepa8.com
+        cacheRetention: *claude_cache
+        compat: *claude_compat
+        models: *claude_models
+      yuepa8-claude-cursor:
+        retryPolicy: *claude_retry
+        displayName: yuepa8-claude-cursor
+        api: *claude_api
+        headers:
+          Authorization: Bearer
+            sk-xxx
+        baseURL: https://yuepa8.com
+        cacheRetention: *claude_cache
+        compat: *claude_compat
+        models: *claude_models
+      yuepa8-gemini:
+        retryPolicy:
+          mode: normal
+          maxRetries: 10
+          backoff:
+            maxDelayMs: 60000
+            jitterRatio: 0.2
+        displayName: yuepa8 Gemini
+        # api: anthropic-messages
+        api: openai-completions
+        headers:
+          Authorization: Bearer sk-xxx
+        baseURL: https://yuepa8.com
+        compat:
+          forceAdaptiveThinking: true
+        models:
+          - id: gemini-3.1-pro-preview
+            contextWindow: 1048576
+            maxTokens: 65536
+            input:
+              - text
+              - image
+            reasoningEfforts:
+              low: low
+              medium: medium
+              high: high
+          - id: gemini-4-argon
+            contextWindow: 1048576
+            maxTokens: 32768
+            input:
+              - text
+              - image
+            reasoningEfforts:
+              low: low
+              high: high
+          - id: gemini-3.8-flash
+            contextWindow: 1048576
+            maxTokens: 65536
+            input:
+              - text
+              - image
+            reasoningEfforts:
+              low: low
+              medium: medium
+              high: high
+          - id: gemini-3.5-flash
+            contextWindow: 1048576
+            maxTokens: 65536
+            input:
+              - text
+              - image
+            reasoningEfforts:
+              minimal: minimal
+              low: low
+              medium: medium
+              high: high
+          - id: gemini-2.5-pro
+            contextWindow: 1048576
+            maxTokens: 65536
+            input:
+              - text
+              - image
+            reasoningEfforts:
+              low: low
+              medium: medium
+              high: high
+- id: ui-conversation
+  config:
+    busyEnter: steer
+- insert:
+    - id: preset-gomtm-code
+      name: '@deepseek-ai/dsh-agent-preset'
+      config:
+        id: gomtm-code
+        name: Gomtm Code
+        description: gomtm 开发：原生工具、工作区指引与技能。
+        order: 0
+        plugins:
+          - id: persona
+            name: '@deepseek-ai/dsh-persona'
+            config:
+              prefix: You are a coding agent powered by the {{model}} model.
+          - id: agent-instructions
+            name: '@deepseek-ai/dsh-agent-instructions'
+            config:
+              maxBytes: 65536
+          - id: time-context
+            name: '@deepseek-ai/dsh-time-context'
+          - id: tool-bash
+            name: '@deepseek-ai/dsh-tool-bash'
+            disabled: !!js process.platform === 'win32'
+          - id: tool-pwsh
+            name: '@deepseek-ai/dsh-tool-pwsh'
+            disabled: !!js process.platform !== 'win32'
+          - id: tool-fs
+            name: '@deepseek-ai/dsh-tool-fs'
+          - id: tool-fs-search
+            name: '@deepseek-ai/dsh-tool-fs-search'
+            config:
+              sampleOverCapGlobResults: false
+          - id: tool-jobs
+            name: '@deepseek-ai/dsh-tool-jobs'
+          # - id: tool-schedule
+          #   name: '@deepseek-ai/dsh-tool-schedule'
+          - id: skill-filesystem
+            name: '@deepseek-ai/dsh-skill-filesystem'
+          - id: tool-skill
+            name: '@deepseek-ai/dsh-tool-skill'
+          - id: command-goal
+            name: '@deepseek-ai/dsh-command-goal'
+          - id: tool-goal
+            name: '@deepseek-ai/dsh-tool-goal'
+          - id: planning
+            name: cordis:group
+            group: true
+            isolate:
+              planMode: true
+            config:
+              - id: plan-mode
+                name: '@deepseek-ai/dsh-plan-mode'
+                config:
+                  section: >
+                    You are in plan mode. Stay in plan mode until the user
+                    approves your plan through exit_plan_mode or switches the
+                    session mode. Imperative language to implement changes means
+                    plan the implementation, not execute it. A user's
+                    conversational agreement — including an answer confirming
+                    something you asked — approves nothing and does not end plan
+                    mode; fold the confirmed decision into the plan and submit
+                    it through exit_plan_mode.
+
+
+                    Explore first. Use non-mutating reads, searches, static
+                    analysis, and checks to ground the plan in the actual
+                    repository. Do not edit or write files, change
+                    configuration, run formatters or code generation that
+                    rewrites tracked files, commit, or otherwise carry out the
+                    plan. Prefer existing functions and patterns over new
+                    machinery.
+
+
+                    The tool catalog stays the same across modes for
+                    request-cache stability. These plan-mode rules override any
+                    later tool description or guidance that suggests using
+                    mutation tools; those tools remain listed to keep the tool
+                    catalog unchanged. Do not use todo_write to track this
+                    planning phase: it tracks implementation after an approved
+                    plan, while the plan itself belongs in exit_plan_mode.
+
+
+                    Resolve discoverable facts by inspection. Use
+                    ask_user_question only for user-owned choices or material
+                    ambiguity that inspection cannot answer. Do not ask the user
+                    where code lives or how current behavior works when you can
+                    find out.
+
+
+                    Make the plan decision-complete: state the goal and success
+                    criteria; group implementation changes by subsystem;
+                    identify public API, schema, and data-flow changes; cover
+                    edge cases, failure modes, tests, acceptance criteria, and
+                    explicit assumptions. Keep it concise enough to review but
+                    detailed enough that another engineer can implement it
+                    without making design decisions.
+
+
+                    When ready, call exit_plan_mode with the complete plan
+                    markdown, starting with a # title. Make exit_plan_mode the
+                    only and final tool call in that assistant response: it
+                    presents the plan for approval, and implementation begins
+                    only in a later step after approval. Do not paste the final
+                    plan as a plain reply or ask "should I proceed?" through
+                    prose or ask_user_question. If review rejects it,
+                    incorporate the feedback and present again. If the review
+                    channel is unavailable or aborted, stay in plan mode and ask
+                    the user to switch modes manually; do not proceed with
+                    implementation.
+          - id: compaction
+            name: cordis:group
+            group: true
+            isolate:
+              compaction: true
+              toolResultPruner: true
+            config:
+              - id: compaction-basic
+                name: '@deepseek-ai/dsh-compaction-basic'
+                # 压缩策略只在本 preset 维护；Web 顶层 compaction-basic 已禁用，内置 preset 使用官方默认。
+                config:
+                  # 触发比例按模型窗口计算，并受输出预留和 headroom 限制；GPT 约 241,500 触发，低于 272K 计费分界。
+                  thresholdRatio: 0.23
+                  # 保留量按估算 token（字符/4）计，估算看不到回放的推理（GPT 加密推理、Kiro 计数偏高），
+                  # 实际 usage 可达估算的 3–12 倍，故用小的绝对值，不用按窗口的比例。
+                  retainTokens: 20000
+                  # 重试只会在同一尾部上重选刚写的摘要，故关闭。
+                  compactionRetries: 0
+                  # 精确匹配 provider/model，未填写的字段继承全局。
+                  modelPolicies:
+                    - provider: yuepa8-claude-kiro-满血
+                      model: claude-fable-5-1
+                      thresholdRatio: &kiro_threshold 0.5
+                      retainTokens: 0
+                    - provider: yuepa8-claude-kiro-满血
+                      model: claude-opus-5-5
+                      thresholdRatio: *kiro_threshold
+                      retainTokens: 0
+                    - provider: yuepa8-claude-kiro-满血
+                      model: claude-opus-5
+                      thresholdRatio: *kiro_threshold
+                      retainTokens: 0
+                    - provider: yuepa8-claude-kiro-满血
+                      model: claude-sonnet-5-5
+                      thresholdRatio: *kiro_threshold
+                      retainTokens: 0
+                    - provider: yuepa8-claude-kiro
+                      model: claude-fable-5-1
+                      thresholdRatio: *kiro_threshold
+                      retainTokens: 0
+                    - provider: yuepa8-claude-kiro
+                      model: claude-opus-5-5
+                      thresholdRatio: *kiro_threshold
+                      retainTokens: 0
+                    - provider: yuepa8-claude-kiro
+                      model: claude-opus-5
+                      thresholdRatio: *kiro_threshold
+                      retainTokens: 0
+                    - provider: yuepa8-claude-kiro
+                      model: claude-sonnet-5-5
+                      thresholdRatio: *kiro_threshold
+                      retainTokens: 0
+              - id: command-compact
+                name: '@deepseek-ai/dsh-command-compact'
+              - id: tool-result-pruner
+                name: '@deepseek-ai/dsh-compaction-tool-result-pruner'
+          - id: delegation
+            name: cordis:group
+            group: true
+            isolate:
+              workflowEngine: true
+            config:
+              - id: tool-subagent-control
+                name: '@deepseek-ai/dsh-tool-subagent-control'
+              - id: tool-subagent-list-agents
+                name: '@deepseek-ai/dsh-tool-subagent-control/list-agents'
+              - id: tool-subagent
+                name: '@deepseek-ai/dsh-tool-subagent'
+                config:
+                  provider: spawn
+                  modelSelectionSettings: true
+              - id: tool-subagent-fork
+                name: '@deepseek-ai/dsh-tool-subagent'
+                config:
+                  provider: fork
+                  toolName: subagent_fork
+              - id: workflow-ptc
+                name: '@deepseek-ai/dsh-workflow-ptc'
+                config:
+                  provider: spawn
+              - id: tool-workflow
+                name: '@deepseek-ai/dsh-tool-workflow'
+          - id: tool-ask-user
+            name: '@deepseek-ai/dsh-tool-ask-user'
+          - id: tool-todo
+            name: '@deepseek-ai/dsh-tool-todo'
+            config:
+              allowParallelInProgress: true
+          - id: tool-web
+            name: '@deepseek-ai/dsh-tool-web'
+            config:
+              fetch: true
+              searchTimeoutMs: 60000
+          - id: present
+            name: '@deepseek-ai/dsh-tool-present'
+          - id: tool-plugin-manager
+            name: '@deepseek-ai/dsh-plugin-manager/tools'
+            disabled: true
+          - id: tool-plugin-market
+            name: '@deepseek-ai/dsh-plugin-market/tools'
+            disabled: true
+- id: agent-preset-registry
+  name: "@deepseek-ai/dsh-agent-preset-registry"
+  config:
+    default: standard
+    selectedDefault: gomtm-code
