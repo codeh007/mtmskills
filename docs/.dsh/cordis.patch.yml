@@ -274,7 +274,7 @@
         compat:
           supportsLongCacheRetention: false
           supportsDeveloperRole: false
-      yuepa8-deepseek-offical(openai):
+      yuepa8-deepseek:
         retryPolicy: &deepseek_retry
           mode: normal
           maxRetries: 10
@@ -288,7 +288,7 @@
           backoff:
             initialDelayMs: 800
             jitterRatio: 0.2
-        displayName: yuepa8-deekseek-offical(openai)
+        displayName: yuepa8-deekseek
         api: openai-responses
         baseURL: https://yuepa8.com
         cacheRetention: long
@@ -296,52 +296,6 @@
           Authorization: Bearer
             sk-xxx
         models:
-          - id: deepseek-v4-flash
-            contextWindow: 1050000
-            maxTokens: 128000
-            input:
-              - text
-              - image
-            reasoningEfforts:
-              off: null
-              minimal: minimal
-              low: low
-              medium: medium
-              high: high
-              xhigh: xhigh
-              max: max
-      yuepa8-deepseek:
-        retryPolicy: *deepseek_retry
-        displayName: yuepa8-deekseek(openai)
-        # api: openai-completions
-        api: openai-responses
-        baseURL: https://yuepa8.com/v1
-        reasoning: max
-        headers:
-          Authorization: Bearer
-            sk-xxx
-        models:
-          - id: deepseek-v4-flash
-            contextWindow: 1050000
-            maxTokens: 128000
-            input:
-              - text
-              - image
-            reasoningEfforts:
-              off: null
-              minimal: minimal
-              low: low
-              medium: medium
-              high: high
-              xhigh: xhigh
-              max: max
-            compat: &deepseek_model_compat
-              supportsStore: false
-              supportsDeveloperRole: false
-              supportsReasoningEffort: true
-              maxTokensField: max_tokens
-              thinkingFormat: deepseek
-              supportsStrictMode: false
           - id: deepseek-v4.1-flash
             contextWindow: 1050000
             maxTokens: 128000
@@ -356,25 +310,7 @@
               high: high
               xhigh: xhigh
               max: max
-            compat: *deepseek_model_compat
-          - id: glm-5.3
-            contextWindow: 1050000
-            maxTokens: 65536
-            input:
-              - text
-              - image
-            reasoningEfforts:
-              low: low
-              high: high
-              max: max
-            compat:
-              supportsStore: false
-              supportsDeveloperRole: false
-              supportsReasoningEffort: true
-              maxTokensField: max_tokens
-              thinkingFormat: zai
-              supportsStrictMode: false
-      # Claude：四组共用协议、模型、重试、兼容与缓存。
+      
       yuepa8-claude-非官方:
         retryPolicy: &claude_retry
           mode: normal
